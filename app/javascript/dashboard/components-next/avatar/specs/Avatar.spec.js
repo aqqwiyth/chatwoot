@@ -24,6 +24,10 @@ describe('Avatar', () => {
       expect(createAvatar({ name: 'John' }).find(INITIALS).text()).toBe('J');
     });
 
+    it('uses the first two characters of a Chinese name', () => {
+      expect(createAvatar({ name: '麦季' }).find(INITIALS).text()).toBe('麦季');
+    });
+
     it('uses the first letter of the first two words', () => {
       expect(
         createAvatar({ name: 'john ronald reuel tolkien' })

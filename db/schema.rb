@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -584,6 +584,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.index ["identifier"], name: "index_channel_api_on_identifier", unique: true
   end
 
+  create_table "channel_group_messaging", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "provider", null: false
+    t.string "identifier", null: false
+    t.jsonb "provider_config", default: {}, null: false
+    t.jsonb "capabilities", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_channel_group_messaging_on_account_id"
+    t.index ["provider", "identifier"], name: "index_channel_group_messaging_on_provider_and_identifier", unique: true
+  end
+
   create_table "channel_email", force: :cascade do |t|
     t.integer "account_id", null: false
     t.string "email", null: false
@@ -790,6 +802,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.jsonb "custom_attributes", default: {}
     t.datetime "last_activity_at", precision: nil
     t.integer "contact_type", default: 0
+    t.jsonb "extensions", default: {}, null: false
     t.string "middle_name", default: ""
     t.string "last_name", default: ""
     t.string "location", default: ""
@@ -873,6 +886,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.bigint "campaign_id"
     t.datetime "snoozed_until", precision: nil
     t.jsonb "custom_attributes", default: {}
+    t.jsonb "extensions", default: {}, null: false
     t.datetime "assignee_last_seen_at", precision: nil
     t.datetime "first_reply_created_at", precision: nil
     t.integer "priority"
@@ -1252,6 +1266,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.jsonb "additional_attributes", default: {}
     t.text "processed_message_content"
     t.jsonb "sentiment", default: {}
+    t.jsonb "extensions", default: {}, null: false
+    t.string "external_event_id"
     t.index "((additional_attributes -> 'campaign_id'::text))", name: "index_messages_on_additional_attributes_campaign_id", using: :gin
     t.index ["account_id", "content_type", "created_at"], name: "idx_messages_account_content_created"
     t.index ["account_id", "created_at", "message_type"], name: "index_messages_on_account_created_type"
@@ -1265,6 +1281,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.index ["sender_type", "sender_id", "created_at"], name: "index_messages_on_sender_and_created"
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender_type_and_sender_id"
     t.index ["source_id"], name: "index_messages_on_source_id"
+    t.index ["inbox_id", "external_event_id"], name: "index_messages_on_inbox_id_and_external_event_id", unique: true, where: "(external_event_id IS NOT NULL)"
   end
 
   create_table "notes", force: :cascade do |t|

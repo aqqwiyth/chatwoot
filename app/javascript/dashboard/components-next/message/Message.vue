@@ -47,6 +47,7 @@ import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
+import { resolveChannelExtension } from 'dashboard/channels/messageRendererRegistry';
 
 /**
  * @typedef {Object} Attachment
@@ -138,6 +139,7 @@ const props = defineProps({
   senderId: { type: Number, default: null },
   senderType: { type: String, default: null },
   sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
+  extensions: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['retry']);
@@ -245,6 +247,18 @@ const orientation = computed(() => {
   return ORIENTATION.LEFT;
 });
 
+const isGroupMessagingIncoming = computed(() => {
+  return (
+    (inbox.value.channel_type || inbox.value.channelType) ===
+      'Channel::GroupMessaging' &&
+    variant.value === MESSAGE_VARIANTS.USER &&
+    !!(
+      props.extensions?.actor?.display_name ||
+      props.extensions?.actor?.displayName
+    )
+  );
+});
+
 const flexOrientationClass = computed(() => {
   const map = {
     [ORIENTATION.LEFT]: 'justify-start',
@@ -256,6 +270,9 @@ const flexOrientationClass = computed(() => {
 });
 
 const gridClass = computed(() => {
+  if (isGroupMessagingIncoming.value) {
+    return 'grid grid-cols-[24px_1fr]';
+  }
   const map = {
     [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
     [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
@@ -265,6 +282,12 @@ const gridClass = computed(() => {
 });
 
 const gridTemplate = computed(() => {
+  if (isGroupMessagingIncoming.value) {
+    return `
+      "avatar bubble"
+      "spacer meta"
+    `;
+  }
   const map = {
     [ORIENTATION.LEFT]: `
       "bubble"
@@ -287,12 +310,21 @@ const shouldGroupWithNext = computed(() => {
 
 const shouldShowAvatar = computed(() => {
   if (props.messageType === MESSAGE_TYPES.ACTIVITY) return false;
-  if (orientation.value === ORIENTATION.LEFT) return false;
+  if (orientation.value === ORIENTATION.LEFT) {
+    return isGroupMessagingIncoming.value;
+  }
 
   return true;
 });
 
 const componentToRender = computed(() => {
+  const registeredRenderer = resolveChannelExtension({
+    channel: inbox.value.channel_type,
+    provider: inbox.value.provider,
+    messageKind: props.extensions?.kind || props.contentType,
+  })?.renderer;
+  if (registeredRenderer) return registeredRenderer;
+
   if (props.isEmailInbox && !props.private) {
     const emailInboxTypes = [MESSAGE_TYPES.INCOMING, MESSAGE_TYPES.OUTGOING];
     if (emailInboxTypes.includes(props.messageType)) return EmailBubble;
@@ -472,6 +504,13 @@ function handleReplyTo() {
 }
 
 const avatarInfo = computed(() => {
+  const actor = props.extensions?.actor;
+  const actorName = actor?.display_name || actor?.displayName;
+  const actorAvatar = actor?.avatar_url || actor?.avatarUrl;
+  if (actorName || actorAvatar) {
+    return { name: actorName || '', src: actorAvatar || '' };
+  }
+
   if (props.contentAttributes?.externalEcho) {
     const { name, avatar_url, channel_type, medium, voice_enabled } =
       inbox.value;
@@ -519,6 +558,23 @@ const avatarTooltip = computed(() => {
   if (avatarInfo.value.name === '') return '';
   return `${t('CONVERSATION.SENT_BY')} ${avatarInfo.value.name}`;
 });
+
+const shouldShowGroupActorName = computed(() => {
+  return (
+    isGroupMessagingIncoming.value &&
+    !!(
+      props.extensions?.actor?.display_name ||
+      props.extensions?.actor?.displayName
+    )
+  );
+});
+
+const groupActorName = computed(
+  () =>
+    props.extensions?.actor?.display_name ||
+    props.extensions?.actor?.displayName ||
+    ''
+);
 
 const setupHighlightTimer = () => {
   if (Number(route.query.messageId) !== Number(props.id)) {
@@ -589,6 +645,7 @@ provideMessageContext({
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
           'flex-col items-start gap-2': shouldShowWhatsappReferral,
+          'flex-col items-start gap-1': shouldShowGroupActorName,
         }"
         @contextmenu="openContextMenu($event)"
       >
@@ -596,6 +653,12 @@ provideMessageContext({
           v-if="shouldShowWhatsappReferral"
           :referral="contentAttributes.referral"
         />
+        <span
+          v-if="shouldShowGroupActorName"
+          class="text-label-small text-n-slate-11 px-1"
+        >
+          {{ groupActorName }}
+        </span>
         <Component :is="componentToRender" />
       </div>
       <MessageError

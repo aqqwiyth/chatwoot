@@ -48,6 +48,7 @@ class Public::Api::V1::Inboxes::ContactsController < Public::Api::V1::InboxesCon
   end
 
   def permitted_params
-    params.permit(:identifier, :identifier_hash, :email, :name, :avatar_url, :phone_number, custom_attributes: {})
+    params.permit(:identifier, :identifier_hash, :email, :name, :avatar_url, :phone_number, :contact_type,
+                  extensions: {}, custom_attributes: {})
   end
 end

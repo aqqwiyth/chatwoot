@@ -79,6 +79,7 @@ class Message < ApplicationRecord
   validates :content_type, presence: true
   validates :content, length: { maximum: 150_000 }
   validates :processed_message_content, length: { maximum: 150_000 }
+  validates :extensions, jsonb_attributes_length: true
 
   # when you have a temperory id in your frontend and want it echoed back via action cable
   attr_accessor :echo_id
@@ -151,6 +152,8 @@ class Message < ApplicationRecord
       conversation_id: conversation&.display_id,
       conversation: conversation.present? ? conversation_push_event_data : nil
     )
+    data[:extensions] = extensions
+    data[:actor] = extensions['actor'] if extensions.is_a?(Hash) && extensions['actor'].present?
     data[:echo_id] = echo_id if echo_id.present?
     data[:attachments] = attachments.map(&:push_event_data) if attachments.present?
     merge_sender_attributes(data)
@@ -194,6 +197,9 @@ class Message < ApplicationRecord
       sender: sender.try(:webhook_data),
       source_id: source_id
     }
+    data[:external_event_id] = external_event_id
+    data[:extensions] = extensions
+    data[:actor] = extensions['actor'] if extensions.is_a?(Hash) && extensions['actor'].present?
     data[:attachments] = attachments.map(&:push_event_data) if attachments.present?
     data
   end
@@ -320,6 +326,7 @@ class Message < ApplicationRecord
 
   def ensure_content_type
     self.content_type ||= Message.content_types[:text]
+    self.extensions = {} unless extensions.is_a?(Hash)
   end
 
   def execute_after_create_commit_callbacks

@@ -126,6 +126,13 @@ if resource.api?
 end
 
 json.provider resource.channel.try(:provider)
+json.callback_webhook_url resource.channel.callback_webhook_url if resource.group_messaging?
+
+if resource.group_messaging?
+  json.provider_config resource.channel.try(:provider_config) if Current.account_user&.administrator?
+  json.capabilities resource.channel.try(:capabilities)
+  json.inbox_identifier resource.channel.try(:identifier)
+end
 
 ## Telegram Attributes
 json.bot_name resource.channel.try(:bot_name) if resource.telegram?

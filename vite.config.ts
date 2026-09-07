@@ -14,4 +14,8 @@ export default defineConfig({
     },
   },
   resolve: { alias: aliases },
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['vite', 'localhost', '127.0.0.1'],
+  },
 });

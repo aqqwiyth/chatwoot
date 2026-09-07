@@ -102,6 +102,14 @@ const channelList = computed(() => {
     icon: 'i-woot-whatsapp',
   });
 
+  channels.push({
+    key: 'group_messaging',
+    provider: 'wecom',
+    title: '企业微信',
+    description: '企业微信群聊',
+    icon: 'i-woot-api',
+  });
+
   return channels;
 });
 

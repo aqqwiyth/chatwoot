@@ -79,6 +79,7 @@ class Conversation < ApplicationRecord
   before_validation :reset_agent_bot_when_assignee_present
   validates :additional_attributes, jsonb_attributes_length: true
   validates :custom_attributes, jsonb_attributes_length: true
+  validates :extensions, jsonb_attributes_length: true
   validates :uuid, uniqueness: true
   validate :validate_referer_url
 
@@ -302,6 +303,7 @@ class Conversation < ApplicationRecord
 
   def validate_additional_attributes
     self.additional_attributes = {} unless additional_attributes.is_a?(Hash)
+    self.extensions = {} unless extensions.is_a?(Hash)
   end
 
   def reset_agent_bot_when_assignee_present

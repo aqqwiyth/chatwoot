@@ -34,6 +34,22 @@ FactoryBot.define do
       end
     end
 
+    trait :group_member_message do
+      extensions do
+        {
+          'schema_version' => 1,
+          'kind' => 'text',
+          'actor' => {
+            'identity_key' => 'feishu:member-1',
+            'external_id' => 'member-1',
+            'display_name' => '群成员',
+            'avatar_url' => 'https://example.test/avatar.png'
+          },
+          'provider' => { 'provider' => 'feishu', 'event_id' => SecureRandom.uuid }
+        }
+      end
+    end
+
     after(:build) do |message|
       message.sender ||= message.outgoing? ? create(:user, account: message.account) : create(:contact, account: message.account)
       message.inbox ||= message.conversation&.inbox || create(:inbox, account: message.account)

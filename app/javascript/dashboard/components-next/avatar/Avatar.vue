@@ -86,13 +86,18 @@ const showDefaultAvatar = computed(() => !props.src && !props.name);
 const initials = computed(() => {
   if (!props.name) return '';
   const words = removeEmoji(props.name).split(/\s+/);
-  return words.length === 1
-    ? words[0].charAt(0).toUpperCase()
-    : words
-        .slice(0, 2)
-        .map(word => word.charAt(0))
-        .join('')
-        .toUpperCase();
+  if (words.length === 1) {
+    const characters = Array.from(words[0]);
+    const containsCjk = /[\u3400-\u9fff]/u.test(words[0]);
+    return (
+      containsCjk ? characters.slice(0, 2).join('') : characters[0]
+    ).toUpperCase();
+  }
+  return words
+    .slice(0, 2)
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase();
 });
 
 const getColorsByNameLength = computed(() => {

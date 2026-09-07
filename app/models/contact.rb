@@ -68,7 +68,13 @@ class Contact < ApplicationRecord
   after_destroy_commit :dispatch_destroy_event
   before_save :sync_contact_attributes
 
-  enum contact_type: { visitor: 0, lead: 1, customer: 2 }
+  # Active Record already defines a `group` relation method. Disable enum
+  # scopes so the `group` contact type can coexist with that API.
+  enum :contact_type, { visitor: 0, lead: 1, customer: 2, group: 3 }, scopes: false
+
+  scope :visitor, -> { where(contact_type: statuses[:visitor]) }
+  scope :lead, -> { where(contact_type: statuses[:lead]) }
+  scope :customer, -> { where(contact_type: statuses[:customer]) }
 
   scope :order_on_last_activity_at, lambda { |direction|
     order(
@@ -151,6 +157,8 @@ class Contact < ApplicationRecord
     data = {
       additional_attributes: additional_attributes,
       custom_attributes: custom_attributes,
+      contact_type: contact_type,
+      extensions: extensions,
       email: email,
       id: id,
       identifier: identifier,
@@ -170,6 +178,8 @@ class Contact < ApplicationRecord
       additional_attributes: additional_attributes,
       avatar: avatar_url,
       custom_attributes: custom_attributes,
+      contact_type: contact_type,
+      extensions: extensions,
       email: email,
       id: id,
       identifier: identifier,
@@ -228,6 +238,7 @@ class Contact < ApplicationRecord
   def prepare_jsonb_attributes
     self.additional_attributes = {} if additional_attributes.blank?
     self.custom_attributes = {} if custom_attributes.blank?
+    self.extensions = {} if extensions.blank?
   end
 
   def sync_contact_attributes

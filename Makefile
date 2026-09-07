@@ -63,4 +63,10 @@ debug_worker:
 docker: 
 	docker build -t $(APP_NAME) -f ./docker/Dockerfile .
 
-.PHONY: setup db_create db_migrate db_seed db_reset db console server burn docker run force_run force_run_tunnel debug debug_worker
+watch_group_messaging_image:
+	./script/watch_group_messaging_image.sh
+
+build_group_messaging_image:
+	./script/watch_group_messaging_image.sh --once
+
+.PHONY: setup db_create db_migrate db_seed db_reset db console server burn docker watch_group_messaging_image build_group_messaging_image run force_run force_run_tunnel debug debug_worker

@@ -109,7 +109,19 @@ const shouldGroupWithNext = (index, searchList) => {
 
   const nextSenderId = next.senderId ?? next.sender?.id;
   const currentSenderId = current.senderId ?? current.sender?.id;
-  const hasSameSender = nextSenderId === currentSenderId;
+  const nextActorId =
+    next.extensions?.actor?.identity_key ??
+    next.extensions?.actor?.identityKey ??
+    next.extensions?.actor?.external_id ??
+    next.extensions?.actor?.externalId;
+  const currentActorId =
+    current.extensions?.actor?.identity_key ??
+    current.extensions?.actor?.identityKey ??
+    current.extensions?.actor?.external_id ??
+    current.extensions?.actor?.externalId;
+  const hasSameActor =
+    !nextActorId && !currentActorId ? true : nextActorId === currentActorId;
+  const hasSameSender = nextSenderId === currentSenderId && hasSameActor;
 
   const nextMessageType = next.messageType;
   const currentMessageType = current.messageType;

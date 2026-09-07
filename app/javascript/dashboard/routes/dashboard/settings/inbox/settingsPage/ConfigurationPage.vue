@@ -49,6 +49,16 @@ export default {
       isUpdatingAllowedDomains: false,
       isSettingDefaults: false,
       isReconfiguring: false,
+      isUpdatingGroupMessaging: false,
+      wecomCompanyName: '',
+      wecomCompanyId: '',
+      wecomAllowedGroupOwners: '[]',
+      wecomAllowedGroupIds: '[]',
+      wecomIgnoredGroupIds: '[]',
+      wecomRoutingRules: '[]',
+      wecomSendAccountId: '[]',
+      wecomSendBaseUrl: '',
+      wecomWebhookSecret: '',
     };
   },
   validations: {
@@ -77,6 +87,12 @@ export default {
     isForwardingEnabled() {
       return !!this.inbox.forwarding_enabled;
     },
+    isAGroupMessagingChannel() {
+      return this.inbox.channel_type === 'Channel::GroupMessaging';
+    },
+    isWecomGroupMessaging() {
+      return this.isAGroupMessagingChannel && this.inbox.provider === 'wecom';
+    },
   },
   watch: {
     inbox() {
@@ -101,12 +117,105 @@ export default {
         this.inbox.selected_feature_flags || []
       ).includes('allow_mobile_webview');
       this.allowedDomains = this.inbox.allowed_domains || '';
+      if (this.isAGroupMessagingChannel) {
+        const config = this.inbox.provider_config || {};
+        if (this.isWecomGroupMessaging) {
+          this.wecomCompanyName = config.company_name || '';
+          this.wecomCompanyId = config.company_id || '';
+          this.wecomAllowedGroupOwners = JSON.stringify(
+            config.allowed_group_owners || [],
+            null,
+            2
+          );
+          this.wecomAllowedGroupIds = JSON.stringify(
+            config.allowed_group_ids || [],
+            null,
+            2
+          );
+          this.wecomIgnoredGroupIds = JSON.stringify(
+            config.ignored_group_ids || [],
+            null,
+            2
+          );
+          this.wecomRoutingRules = JSON.stringify(
+            config.routing_rules || [],
+            null,
+            2
+          );
+          this.wecomSendAccountId = JSON.stringify(
+            config.send_account_id || [],
+            null,
+            2
+          );
+          this.wecomSendBaseUrl = config.send_base_url || config.send_url || '';
+          this.wecomWebhookSecret = config.webhook_secret || '';
+        }
+      }
       this.$nextTick(() => {
         this.isSettingDefaults = false;
       });
     },
     handleHmacFlag() {
       this.updateInbox();
+    },
+    async updateWecomConfig() {
+      if (!this.isWecomGroupMessaging) return;
+      const parseArray = value => {
+        try {
+          const parsed = JSON.parse(value || '[]');
+          if (!Array.isArray(parsed)) throw new Error();
+          return parsed;
+        } catch (error) {
+          useAlert('群组 ID、路由规则和发送账号必须是有效 JSON 数组');
+          return null;
+        }
+      };
+      const allowedGroupOwners = parseArray(this.wecomAllowedGroupOwners);
+      const allowedGroupIds = parseArray(this.wecomAllowedGroupIds);
+      const ignoredGroupIds = parseArray(this.wecomIgnoredGroupIds);
+      const routingRules = parseArray(this.wecomRoutingRules);
+      const sendAccountId = parseArray(this.wecomSendAccountId);
+      if (
+        [
+          allowedGroupOwners,
+          allowedGroupIds,
+          ignoredGroupIds,
+          routingRules,
+          sendAccountId,
+        ].some(value => value === null)
+      ) {
+        return;
+      }
+      const providerConfig = {
+        ...(this.inbox.provider_config || {}),
+        company_name: this.wecomCompanyName.trim(),
+        company_id: this.wecomCompanyId.trim(),
+        allowed_group_owners: allowedGroupOwners,
+        allowed_group_ids: allowedGroupIds,
+        ignored_group_ids: ignoredGroupIds,
+        routing_rules: routingRules,
+        send_account_id: sendAccountId,
+        send_base_url: this.wecomSendBaseUrl.trim(),
+        send_url: this.wecomSendBaseUrl.trim(),
+        webhook_secret: this.wecomWebhookSecret.trim(),
+      };
+      if (!providerConfig.company_name || !providerConfig.company_id) {
+        useAlert('企业微信公司名称和公司 ID 不能为空');
+        return;
+      }
+      this.isUpdatingGroupMessaging = true;
+      try {
+        await this.$store.dispatch('inboxes/updateInbox', {
+          id: this.inbox.id,
+          formData: false,
+          channel: { provider_config: providerConfig },
+        });
+        useAlert('企业微信配置已更新');
+      } catch (error) {
+        useAlert(error.response?.data?.message || '企业微信配置更新失败');
+      } finally {
+        this.isUpdatingGroupMessaging = false;
+      }
     },
     async updateInbox() {
       try {
@@ -392,6 +501,46 @@ export default {
     <ImapSettings :inbox="inbox" />
     <SmtpSettings v-if="inbox.imap_enabled" :inbox="inbox" />
   </div>
+  <div v-else-if="isAGroupMessagingChannel">
+    <SettingsFieldSection
+      v-if="isWecomGroupMessaging"
+      label="企业微信配置"
+      help-text="编辑企业微信公司及群聊相关 ID"
+    >
+      <div class="group-messaging-fields">
+        <p class="help-text">
+          允许的群主 ID 与允许的群 ID 为“或”关系，任一命中即可进入；忽略的群 ID 优先级最高，命中后不会进入。
+        </p>
+        <woot-input v-model.trim="wecomCompanyName" label="企业微信公司名称" />
+        <woot-input v-model.trim="wecomCompanyId" label="企业微信公司 ID" />
+        <label
+          >允许的群主 ID（JSON 数组）<textarea
+            v-model="wecomAllowedGroupOwners"
+            rows="2"
+        /></label>
+        <label
+          >允许的群 ID（JSON 数组）<textarea v-model="wecomAllowedGroupIds" rows="2"
+        /></label>
+        <label
+          >忽略的群 ID（JSON 数组）<textarea v-model="wecomIgnoredGroupIds" rows="2"
+        /></label>
+        <label
+          >团队分流规则（暂留空）<textarea v-model="wecomRoutingRules" rows="3"
+        /></label>
+        <label
+          >发送账号 ID（JSON 数组）<textarea v-model="wecomSendAccountId" rows="2"
+        /></label>
+        <woot-input v-model.trim="wecomSendBaseUrl" label="发送 RPA 服务地址" />
+        <woot-input v-model.trim="wecomWebhookSecret" label="Webhook Secret" />
+      </div>
+      <NextButton :is-loading="isUpdatingGroupMessaging" solid blue @click="updateWecomConfig">
+        保存企业微信配置
+      </NextButton>
+    </SettingsFieldSection>
+    <SettingsFieldSection v-else label="Provider 配置" help-text="该群聊 provider 暂无专用配置编辑页">
+      <woot-code :script="JSON.stringify(inbox.provider_config || {}, null, 2)" />
+    </SettingsFieldSection>
+  </div>
   <div v-else-if="isAWhatsAppChannel && !isATwilioChannel">
     <div v-if="inbox.provider_config">
       <!-- Embedded Signup Section -->
@@ -497,6 +646,19 @@ export default {
 .whatsapp-settings--content {
   :deep(input) {
     margin-bottom: 0;
+  }
+}
+.group-messaging-fields {
+  display: grid;
+  gap: var(--space-normal);
+  margin-bottom: var(--space-normal);
+
+  textarea {
+    width: 100%;
+    padding: var(--space-small);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-normal);
+    font-family: var(--font-family-mono);
   }
 }
 </style>

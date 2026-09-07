@@ -10,6 +10,9 @@ json.content_attributes message.content_attributes
 json.created_at message.created_at.to_i
 json.private message.private
 json.source_id message.source_id
+json.external_event_id message.external_event_id
+json.extensions message.extensions
+json.actor message.extensions['actor'] if message.extensions.is_a?(Hash) && message.extensions['actor'].present?
 json.sender message.sender.push_event_data if message.sender
 json.attachments message.attachments.map(&:push_event_data) if message.attachments.present?
 

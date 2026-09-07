@@ -121,6 +121,19 @@ class Messages::MessageBuilder
     @params[:external_created_at].present? ? { external_created_at: @params[:external_created_at] } : {}
   end
 
+  def extensions
+    value = @params[:extensions]
+    return {} unless value.respond_to?(:to_h)
+
+    value.to_h.deep_stringify_keys
+  end
+
+  def external_event_id
+    return {} if @params[:external_event_id].blank?
+
+    { external_event_id: @params[:external_event_id] }
+  end
+
   def automation_rule_id
     @automation_rule.present? ? { content_attributes: { automation_rule_id: @automation_rule } } : {}
   end
@@ -152,8 +165,9 @@ class Messages::MessageBuilder
       items: @items,
       in_reply_to: @in_reply_to,
       echo_id: @params[:echo_id],
-      source_id: @params[:source_id]
-    }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params)
+      source_id: @params[:source_id],
+      extensions: extensions
+    }.merge(external_created_at).merge(external_event_id).merge(automation_rule_id).merge(campaign_id).merge(template_params)
   end
 
   def email_inbox?

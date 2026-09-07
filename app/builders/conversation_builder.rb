@@ -20,6 +20,7 @@ class ConversationBuilder
   def conversation_params
     additional_attributes = params[:additional_attributes]&.permit! || {}
     custom_attributes = params[:custom_attributes]&.permit! || {}
+    extensions = params[:extensions]&.permit! || {}
     status = params[:status].present? ? { status: params[:status] } : {}
 
     # TODO: temporary fallback for the old bot status in conversation, we will remove after couple of releases
@@ -32,6 +33,7 @@ class ConversationBuilder
       contact_inbox_id: @contact_inbox.id,
       additional_attributes: additional_attributes,
       custom_attributes: custom_attributes,
+      extensions: extensions,
       snoozed_until: params[:snoozed_until],
       assignee_id: params[:assignee_id],
       team_id: params[:team_id]

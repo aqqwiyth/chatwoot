@@ -6,6 +6,22 @@ class Public::Api::V1::Inboxes::MessagesController < Public::Api::V1::InboxesCon
   end
 
   def create
+    if @inbox_channel.is_a?(Channel::GroupMessaging)
+      extensions = (permitted_params[:extensions] || {}).to_h.deep_stringify_keys
+      event = extensions.merge(
+        'external_event_id' => permitted_params[:external_event_id],
+        'external_message_id' => permitted_params[:source_id],
+        'group_id' => @contact_inbox.source_id,
+        'content' => permitted_params[:content],
+        'content_type' => 'text'
+      )
+      @message = GroupMessaging::InboundMessageService.new(
+        inbox: @inbox_channel.inbox,
+        event: GroupMessaging::EventNormalizer.normalize(event, provider: @inbox_channel.provider)
+      ).perform
+      return
+    end
+
     @message = @conversation.messages.new(message_params)
     build_attachment
     @message.save!
@@ -49,7 +65,7 @@ class Public::Api::V1::Inboxes::MessagesController < Public::Api::V1::InboxesCon
   end
 
   def permitted_params
-    params.permit(:content, :echo_id)
+    params.permit(:content, :echo_id, :source_id, :external_event_id, extensions: {})
   end
 
   def set_message

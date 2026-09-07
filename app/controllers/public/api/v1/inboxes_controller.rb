@@ -4,7 +4,7 @@ class Public::Api::V1::InboxesController < PublicController
   before_action :set_conversation
 
   def show
-    @inbox_channel = ::Channel::Api.find_by!(identifier: params[:id])
+    @inbox_channel = find_channel(params[:id])
   end
 
   private
@@ -12,7 +12,12 @@ class Public::Api::V1::InboxesController < PublicController
   def set_inbox_channel
     return if params[:inbox_id].blank?
 
-    @inbox_channel = ::Channel::Api.find_by!(identifier: params[:inbox_id])
+    @inbox_channel = find_channel(params[:inbox_id])
+  end
+
+  def find_channel(identifier)
+    ::Channel::Api.find_by(identifier: identifier) ||
+      ::Channel::GroupMessaging.find_by(identifier: identifier)
   end
 
   def set_contact_inbox

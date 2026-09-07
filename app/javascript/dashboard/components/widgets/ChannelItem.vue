@@ -29,6 +29,9 @@ const hasTiktokConfigured = computed(() => {
 
 const isActive = computed(() => {
   const { key } = props.channel;
+  if (key === 'group_messaging') {
+    return true;
+  }
   if (Object.keys(props.enabledFeatures).length === 0) {
     return false;
   }
@@ -64,6 +67,7 @@ const isActive = computed(() => {
     'sms',
     'telegram',
     'line',
+    'group_messaging',
     'instagram',
     'tiktok',
     'voice',

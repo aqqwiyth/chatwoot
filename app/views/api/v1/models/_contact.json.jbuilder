@@ -1,4 +1,6 @@
 json.additional_attributes resource.additional_attributes
+json.contact_type resource.contact_type
+json.extensions resource.extensions
 json.availability_status resource.availability_status
 json.email resource.email
 json.id resource.id

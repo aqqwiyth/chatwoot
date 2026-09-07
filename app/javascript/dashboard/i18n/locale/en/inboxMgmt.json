@@ -1404,7 +1404,8 @@
       "API": "API Channel",
       "INSTAGRAM": "Instagram",
       "TIKTOK": "TikTok",
-      "VOICE": "Voice"
+      "VOICE": "Voice",
+      "GROUP_MESSAGING": "Group messaging"
     }
   }
 }

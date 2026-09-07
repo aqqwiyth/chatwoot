@@ -55,7 +55,9 @@ class ContactInboxWithContactBuilder
       email: contact_attributes[:email],
       identifier: contact_attributes[:identifier],
       additional_attributes: contact_attributes[:additional_attributes],
-      custom_attributes: contact_attributes[:custom_attributes]
+      custom_attributes: contact_attributes[:custom_attributes],
+      contact_type: contact_attributes[:contact_type] || :visitor,
+      extensions: contact_attributes[:extensions]
     )
   end
 
@@ -98,18 +100,24 @@ class ContactInboxWithContactBuilder
   def find_contact_by_identifier(identifier)
     return if identifier.blank?
 
-    account.contacts.find_by(identifier: identifier)
+    contact_scope.where(identifier: identifier).first
   end
 
   def find_contact_by_email(email)
     return if email.blank?
 
-    account.contacts.from_email(email)
+    contact_scope.find_by(email: email&.downcase)
   end
 
   def find_contact_by_phone_number(phone_number)
     return if phone_number.blank?
 
-    account.contacts.find_by(phone_number: phone_number)
+    contact_scope.where(phone_number: phone_number).first
+  end
+
+  def contact_scope
+    scope = account.contacts
+    scope = scope.where(contact_type: contact_attributes[:contact_type]) if contact_attributes[:contact_type].present?
+    scope
   end
 end

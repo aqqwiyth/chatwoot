@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { messageTimestamp } from 'shared/helpers/timeHelper';
+import { messageStamp, messageTimestamp } from 'shared/helpers/timeHelper';
 
 import MessageStatus from './MessageStatus.vue';
 import Icon from 'next/icon/Icon.vue';
@@ -21,6 +21,7 @@ const {
   isAnEmailChannel,
   isAnInstagramChannel,
   isATiktokChannel,
+  isAGroupMessagingChannel,
 } = useInbox();
 
 const {
@@ -32,9 +33,12 @@ const {
   contentAttributes,
 } = useMessageContext();
 
-const readableTime = computed(() =>
-  messageTimestamp(createdAt.value, 'LLL d, h:mm a')
-);
+const readableTime = computed(() => {
+  if (isAGroupMessagingChannel.value) {
+    return messageStamp(createdAt.value, 'LLL d, HH:mm');
+  }
+  return messageTimestamp(createdAt.value, 'LLL d, h:mm a');
+});
 
 const showStatusIndicator = computed(() => {
   if (isPrivate.value) return false;

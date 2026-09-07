@@ -105,7 +105,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
   end
 
   def allowed_channel_types
-    %w[web_widget api email line telegram whatsapp sms]
+    %w[web_widget api email line telegram whatsapp sms group_messaging]
   end
 
   def update_inbox_working_hours
@@ -133,7 +133,8 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
   end
 
   def reauthorize_and_update_channel(channel_attributes)
-    @inbox.channel.update!(permitted_params(channel_attributes)[:channel])
+    channel_params = permitted_params(channel_attributes)[:channel].except(:type)
+    @inbox.channel.update!(channel_params)
     @inbox.channel.reauthorized! if @inbox.channel.respond_to?(:reauthorized!)
   end
 
@@ -215,7 +216,8 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
       'line' => Channel::Line,
       'telegram' => Channel::Telegram,
       'whatsapp' => Channel::Whatsapp,
-      'sms' => Channel::Sms
+      'sms' => Channel::Sms,
+      'group_messaging' => Channel::GroupMessaging
     }[permitted_params[:channel][:type]]
   end
 

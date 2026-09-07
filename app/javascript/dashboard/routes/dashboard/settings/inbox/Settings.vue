@@ -210,6 +210,7 @@ export default {
         this.isATwilioChannel ||
         this.isALineChannel ||
         this.isAPIInbox ||
+        this.isAGroupMessagingChannel ||
         (this.isAnEmailChannel && !this.inbox.provider) ||
         this.shouldShowWhatsAppConfiguration ||
         this.isAWebWidgetInbox
@@ -316,6 +317,9 @@ export default {
         return `${this.inbox.name} (${this.inbox.email})`;
       }
       return this.inbox.name;
+    },
+    isAGroupMessagingChannel() {
+      return this.inbox.channel_type === INBOX_TYPES.GROUP_MESSAGING;
     },
     canLocktoSingleConversation() {
       return (

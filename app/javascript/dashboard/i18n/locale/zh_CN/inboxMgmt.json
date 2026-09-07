@@ -1373,7 +1373,8 @@
       "API": "API 频道",
       "INSTAGRAM": "Instagram",
       "TIKTOK": "TikTok",
-      "VOICE": "语音"
+      "VOICE": "语音",
+      "GROUP_MESSAGING": "群聊"
     }
   }
 }

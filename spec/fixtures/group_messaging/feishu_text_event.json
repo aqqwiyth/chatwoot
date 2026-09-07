@@ -1,0 +1,26 @@
+{
+  "group_id": "oc_mock_group",
+  "external_event_id": "evt_mock_001",
+  "external_message_id": "om_mock_001",
+  "content": "这是一条群聊测试消息",
+  "content_type": "text",
+  "kind": "text",
+  "group": {
+    "external_id": "oc_mock_group",
+    "display_name": "研发测试群",
+    "avatar_url": "https://example.test/group.png",
+    "member_count": 3
+  },
+  "actor": {
+    "external_id": "ou_mock_member",
+    "display_name": "测试成员",
+    "avatar_url": "https://example.test/member.png",
+    "role": "member",
+    "is_bot": false
+  },
+  "provider": {
+    "event_id": "evt_mock_001",
+    "message_id": "om_mock_001",
+    "thread_id": "omt_mock_001"
+  }
+}
