@@ -110,6 +110,15 @@ const channelList = computed(() => {
     icon: 'i-woot-api',
   });
 
+  channels.push({
+    key: 'wecom_customer_service',
+    title: t('INBOX_MGMT.ADD.AUTH.CHANNEL.WECOM_CUSTOMER_SERVICE.TITLE'),
+    description: t(
+      'INBOX_MGMT.ADD.AUTH.CHANNEL.WECOM_CUSTOMER_SERVICE.DESCRIPTION'
+    ),
+    icon: 'i-ri-wechat-2-line',
+  });
+
   return channels;
 });
 

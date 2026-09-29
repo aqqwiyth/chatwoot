@@ -669,6 +669,8 @@ Rails.application.routes.draw do
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
   post 'webhooks/group_messaging/:provider/:identifier', to: 'webhooks/group_messaging#process_payload'
+  get 'webhooks/wecom_customer_service/:identifier', to: 'webhooks/wecom_customer_service#verify'
+  post 'webhooks/wecom_customer_service/:identifier', to: 'webhooks/wecom_customer_service#process_payload'
   post 'webhooks/tiktok', to: 'webhooks/tiktok#events'
   post 'webhooks/shopify', to: 'webhooks/shopify#events'
 

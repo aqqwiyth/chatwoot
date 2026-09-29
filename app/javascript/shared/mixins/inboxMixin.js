@@ -134,6 +134,9 @@ export default {
     isATiktokChannel() {
       return this.channelType === INBOX_TYPES.TIKTOK;
     },
+    isAWecomCustomerServiceChannel() {
+      return this.channelType === INBOX_TYPES.WECOM_CUSTOMER_SERVICE;
+    },
   },
   methods: {
     inboxHasFeature(feature) {

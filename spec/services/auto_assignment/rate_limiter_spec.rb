@@ -86,6 +86,18 @@ RSpec.describe AutoAssignment::RateLimiter do
         )
         rate_limiter.track_assignment(conversation)
       end
+
+      it 'keeps the window record after the conversation is resolved' do
+        expected_key = format(Redis::RedisKeys::ASSIGNMENT_KEY, inbox_id: inbox.id, agent_id: agent.id, conversation_id: conversation.id)
+        allow(Redis::Alfred).to receive(:set)
+        allow(Redis::Alfred).to receive(:delete)
+
+        rate_limiter.track_assignment(conversation)
+        conversation.update!(status: :resolved)
+
+        expect(Redis::Alfred).to have_received(:set).with(expected_key, conversation.id.to_s, ex: 3600)
+        expect(Redis::Alfred).not_to have_received(:delete)
+      end
     end
   end
 

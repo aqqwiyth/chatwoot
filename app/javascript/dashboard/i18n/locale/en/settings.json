@@ -823,7 +823,7 @@
         "TITLE": "Agent capacity policy",
         "DESCRIPTION": "Manage workload for agents.",
         "FEATURES": [
-          "Define maximum conversations per inbox",
+          "Define maximum concurrent conversations per inbox",
           "Create exceptions based on labels and time",
           "Add agents to a policy - one policy per agent"
         ]
@@ -1029,12 +1029,13 @@
           "PLACEHOLDER": "Enter description"
         },
         "INBOX_CAPACITY_LIMIT": {
-          "LABEL": "Inbox capacity limits",
+          "LABEL": "Maximum concurrent conversations per inbox",
+          "DESCRIPTION": "When an agent resolves a conversation, the next unassigned conversation is assigned automatically.",
           "ADD_BUTTON": "Add inbox",
           "FIELD": {
             "SELECT_INBOX": "Select inbox",
-            "MAX_CONVERSATIONS": "Max conversations",
-            "SET_LIMIT": "Set limit"
+            "MAX_CONVERSATIONS": "Max concurrent conversations",
+            "SET_LIMIT": "Set concurrent limit"
           },
           "EMPTY_STATE": "No inbox limit set"
         },

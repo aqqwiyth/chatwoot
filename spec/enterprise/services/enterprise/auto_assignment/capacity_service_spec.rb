@@ -84,6 +84,17 @@ RSpec.describe Enterprise::AutoAssignment::CapacityService, type: :service do
       expect(capacity_service.agent_has_capacity?(agent_without_capacity, inbox)).to be true
       expect(capacity_service.agent_has_capacity?(agent_at_capacity, inbox)).to be false
     end
+
+    it 'releases capacity when an open conversation is resolved' do
+      capacity_service = described_class.new
+      conversation = agent_at_capacity.assigned_conversations.where(inbox: inbox, status: :open).first
+
+      expect(capacity_service.agent_has_capacity?(agent_at_capacity, inbox)).to be false
+
+      conversation.update!(status: :resolved)
+
+      expect(capacity_service.agent_has_capacity?(agent_at_capacity, inbox)).to be true
+    end
   end
 
   describe 'exclusion policy (zero conversation limit)' do
@@ -137,6 +148,20 @@ RSpec.describe Enterprise::AutoAssignment::CapacityService, type: :service do
 
   describe 'assignment with capacity' do
     let(:service) { AutoAssignment::AssignmentService.new(inbox: inbox) }
+
+    it 'applies fair distribution and concurrent capacity filters together' do
+      allow(AutoAssignment::RateLimiter).to receive(:new) do |inbox:, agent:|
+        instance_double(
+          AutoAssignment::RateLimiter,
+          within_limit?: agent != agent_with_capacity,
+          track_assignment: nil
+        )
+      end
+
+      selected_agent = service.send(:find_available_agent)
+
+      expect(selected_agent).to eq(agent_without_capacity)
+    end
 
     it 'assigns to agents with available capacity' do
       # Create conversation before assignment

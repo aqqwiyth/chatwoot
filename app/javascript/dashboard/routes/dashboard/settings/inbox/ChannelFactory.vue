@@ -14,6 +14,7 @@ import Instagram from './channels/Instagram.vue';
 import Tiktok from './channels/Tiktok.vue';
 import Voice from './channels/Voice.vue';
 import GroupMessaging from './channels/GroupMessaging.vue';
+import WecomCustomerService from './channels/WecomCustomerService.vue';
 
 const channelViewList = {
   facebook: Facebook,
@@ -30,6 +31,7 @@ const channelViewList = {
   tiktok: Tiktok,
   voice: Voice,
   group_messaging: GroupMessaging,
+  wecom_customer_service: WecomCustomerService,
 };
 
 export default defineComponent({

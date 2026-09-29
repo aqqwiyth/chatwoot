@@ -35,6 +35,7 @@ const i18nMap = {
   'Channel::Instagram': 'INSTAGRAM',
   'Channel::Tiktok': 'TIKTOK',
   'Channel::GroupMessaging': 'GROUP_MESSAGING',
+  'Channel::WecomCustomerService': 'WECOM_CUSTOMER_SERVICE',
 };
 
 const twilioChannelName = () => {

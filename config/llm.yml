@@ -7,6 +7,10 @@ providers:
     display_name: 'Gemini'
 
 models:
+  qwen/qwen-plus:
+    provider: openrouter
+    display_name: '"qwen/qwen-plus'
+    credit_multiplier: 1
   gpt-4.1:
     provider: openai
     display_name: 'GPT-4.1'
@@ -83,6 +87,7 @@ features:
   editor:
     models:
       [
+        qwen/qwen-plus,
         gpt-4.1-mini,
         gpt-4.1-nano,
         gpt-5-mini,

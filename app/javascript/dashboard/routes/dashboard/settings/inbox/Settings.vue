@@ -211,6 +211,7 @@ export default {
         this.isALineChannel ||
         this.isAPIInbox ||
         this.isAGroupMessagingChannel ||
+        this.inbox.channel_type === INBOX_TYPES.WECOM_CUSTOMER_SERVICE ||
         (this.isAnEmailChannel && !this.inbox.provider) ||
         this.shouldShowWhatsAppConfiguration ||
         this.isAWebWidgetInbox

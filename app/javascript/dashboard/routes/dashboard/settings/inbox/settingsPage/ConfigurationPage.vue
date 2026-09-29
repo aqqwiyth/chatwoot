@@ -59,6 +59,12 @@ export default {
       wecomSendAccountId: '[]',
       wecomSendBaseUrl: '',
       wecomWebhookSecret: '',
+      wecomCustomerWebhookUrl: '',
+      wecomCustomerCallbackToken: '',
+      wecomCustomerEncodingAesKey: '',
+      wecomCustomerCorpId: '',
+      wecomCustomerOpenKfid: '',
+      wecomCustomerSecret: '',
     };
   },
   validations: {
@@ -92,6 +98,9 @@ export default {
     },
     isWecomGroupMessaging() {
       return this.isAGroupMessagingChannel && this.inbox.provider === 'wecom';
+    },
+    isWecomCustomerService() {
+      return this.inbox.channel_type === 'Channel::WecomCustomerService';
     },
   },
   watch: {
@@ -150,6 +159,14 @@ export default {
           this.wecomSendBaseUrl = config.send_base_url || config.send_url || '';
           this.wecomWebhookSecret = config.webhook_secret || '';
         }
+      }
+      if (this.isWecomCustomerService) {
+        this.wecomCustomerWebhookUrl = this.inbox.webhook_url || '';
+        this.wecomCustomerCallbackToken = this.inbox.callback_token || '';
+        this.wecomCustomerEncodingAesKey = this.inbox.encoding_aes_key || '';
+        this.wecomCustomerCorpId = this.inbox.corp_id || '';
+        this.wecomCustomerOpenKfid = this.inbox.open_kfid || '';
+        this.wecomCustomerSecret = this.inbox.secret || '';
       }
       this.$nextTick(() => {
         this.isSettingDefaults = false;
@@ -215,6 +232,32 @@ export default {
         useAlert(error.response?.data?.message || '企业微信配置更新失败');
       } finally {
         this.isUpdatingGroupMessaging = false;
+      }
+    },
+    async updateWecomCustomerService() {
+      if (!this.isWecomCustomerService) return;
+
+      try {
+        await this.$store.dispatch('inboxes/updateInbox', {
+          id: this.inbox.id,
+          formData: false,
+          channel: {
+            webhook_url: this.wecomCustomerWebhookUrl.trim(),
+            callback_token: this.wecomCustomerCallbackToken.trim(),
+            encoding_aes_key: this.wecomCustomerEncodingAesKey.trim(),
+            corp_id: this.wecomCustomerCorpId.trim(),
+            open_kfid: this.wecomCustomerOpenKfid.trim(),
+            secret: this.wecomCustomerSecret.trim(),
+          },
+        });
+        useAlert(
+          this.$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SUCCESS')
+        );
+      } catch (error) {
+        useAlert(
+          error.response?.data?.message ||
+            this.$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.ERROR')
+        );
       }
     },
     async updateInbox() {
@@ -539,6 +582,63 @@ export default {
     </SettingsFieldSection>
     <SettingsFieldSection v-else label="Provider 配置" help-text="该群聊 provider 暂无专用配置编辑页">
       <woot-code :script="JSON.stringify(inbox.provider_config || {}, null, 2)" />
+    </SettingsFieldSection>
+  </div>
+  <div v-else-if="isWecomCustomerService">
+    <SettingsFieldSection
+      :label="$t(
+        'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_URL'
+      )"
+    >
+      <woot-code lang="html" :script="inbox.callback_webhook_url" />
+    </SettingsFieldSection>
+    <SettingsFieldSection
+      :label="$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.TITLE')"
+      :help-text="$t(
+        'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.DESCRIPTION'
+      )"
+    >
+      <woot-input
+        v-model.trim="wecomCustomerWebhookUrl"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.WEBHOOK_URL'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerOpenKfid"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.OPEN_KFID'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerSecret"
+        type="password"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SECRET'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerCallbackToken"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_TOKEN'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerEncodingAesKey"
+        type="password"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.ENCODING_AES_KEY'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerCorpId"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CORP_ID'
+        )"
+      />
+      <NextButton solid blue @click="updateWecomCustomerService">
+        {{ $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SAVE') }}
+      </NextButton>
     </SettingsFieldSection>
   </div>
   <div v-else-if="isAWhatsAppChannel && !isATwilioChannel">

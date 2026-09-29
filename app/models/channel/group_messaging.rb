@@ -1,3 +1,21 @@
+# == Schema Information
+#
+# Table name: channel_group_messaging
+#
+#  id              :bigint           not null, primary key
+#  capabilities    :jsonb            not null
+#  identifier      :string           not null
+#  provider        :string           not null
+#  provider_config :jsonb            not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  account_id      :bigint           not null
+#
+# Indexes
+#
+#  index_channel_group_messaging_on_account_id               (account_id)
+#  index_channel_group_messaging_on_provider_and_identifier  (provider,identifier) UNIQUE
+#
 class Channel::GroupMessaging < ApplicationRecord
   include Channelable
 

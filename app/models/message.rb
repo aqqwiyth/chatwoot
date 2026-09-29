@@ -7,6 +7,7 @@
 #  content                   :text
 #  content_attributes        :json
 #  content_type              :integer          default("text"), not null
+#  extensions                :jsonb            not null
 #  external_source_ids       :jsonb
 #  message_type              :integer          not null
 #  private                   :boolean          default(FALSE), not null
@@ -18,6 +19,7 @@
 #  updated_at                :datetime         not null
 #  account_id                :integer          not null
 #  conversation_id           :integer          not null
+#  external_event_id         :string
 #  inbox_id                  :integer          not null
 #  sender_id                 :bigint
 #  source_id                 :text
@@ -34,7 +36,9 @@
 #  index_messages_on_conversation_id                    (conversation_id)
 #  index_messages_on_created_at                         (created_at)
 #  index_messages_on_inbox_id                           (inbox_id)
+#  index_messages_on_inbox_id_and_external_event_id     (inbox_id,external_event_id) UNIQUE WHERE (external_event_id IS NOT NULL)
 #  index_messages_on_sender_and_created                 (sender_type,sender_id,created_at)
+#  index_messages_on_sender_type_and_sender_id          (sender_type,sender_id)
 #  index_messages_on_source_id                          (source_id)
 #
 

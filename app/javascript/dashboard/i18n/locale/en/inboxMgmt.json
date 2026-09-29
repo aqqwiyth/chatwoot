@@ -520,6 +520,10 @@
           "VOICE": {
             "TITLE": "Voice",
             "DESCRIPTION": "Integrate with Twilio Voice"
+          },
+          "WECOM_CUSTOMER_SERVICE": {
+            "TITLE": "WeChat customer service",
+            "DESCRIPTION": "Show messages in Chatwoot and forward them to a robot webhook"
           }
         }
       },
@@ -554,6 +558,35 @@
         "SIGN_IN": "Sign in with Google",
         "EMAIL_PLACEHOLDER": "Enter email address",
         "ERROR_MESSAGE": "There was an error connecting to Google, please try again"
+      },
+      "WECOM_CUSTOMER_SERVICE": {
+        "TITLE": "WeChat customer service channel",
+        "DESC": "Show customer service messages in Chatwoot and forward them to a robot webhook.",
+        "CHANNEL_NAME": {
+          "LABEL": "Inbox Name"
+        },
+        "WEBHOOK_URL": {
+          "LABEL": "Robot webhook URL"
+        },
+        "CALLBACK_TOKEN": {
+          "LABEL": "Callback token"
+        },
+        "ENCODING_AES_KEY": {
+          "LABEL": "EncodingAESKey"
+        },
+        "CORP_ID": {
+          "LABEL": "Corp ID"
+        },
+        "SUBMIT_BUTTON": "Create WeChat customer service channel",
+        "API": {
+          "ERROR_MESSAGE": "We were not able to save the WeChat customer service channel"
+        },
+        "OPEN_KFID": {
+          "LABEL": "OpenKfId"
+        },
+        "SECRET": {
+          "LABEL": "Message reading secret"
+        }
       }
     },
     "DETAILS": {
@@ -1039,7 +1072,21 @@
         "LABEL": "Enable voice calling",
         "DESCRIPTION": "Allow agents to start and receive WhatsApp voice calls on this inbox. Available only on embedded-signup WhatsApp Cloud channels with calling permission granted by Meta."
       },
-      "UPDATE_PRE_CHAT_FORM_SETTINGS": "Update Pre Chat Form Settings"
+      "UPDATE_PRE_CHAT_FORM_SETTINGS": "Update Pre Chat Form Settings",
+      "WECOM_CUSTOMER_SERVICE": {
+        "TITLE": "WeChat customer service configuration",
+        "DESCRIPTION": "Customer messages appear in Chatwoot and are also forwarded to the robot webhook.",
+        "WEBHOOK_URL": "Robot webhook URL",
+        "OPEN_KFID": "OpenKfId",
+        "SECRET": "Message reading secret",
+        "CALLBACK_TOKEN": "Callback token",
+        "ENCODING_AES_KEY": "EncodingAESKey",
+        "CORP_ID": "Corp ID",
+        "SAVE": "Save WeChat customer service configuration",
+        "SUCCESS": "WeChat customer service configuration updated",
+        "ERROR": "Unable to update WeChat customer service configuration",
+        "CALLBACK_URL": "Callback URL"
+      }
     },
     "HELP_CENTER": {
       "LABEL": "Help Center",
@@ -1405,7 +1452,8 @@
       "INSTAGRAM": "Instagram",
       "TIKTOK": "TikTok",
       "VOICE": "Voice",
-      "GROUP_MESSAGING": "Group messaging"
+      "GROUP_MESSAGING": "Group messaging",
+      "WECOM_CUSTOMER_SERVICE": "WeChat customer service"
     }
   }
 }

@@ -29,7 +29,7 @@ const hasTiktokConfigured = computed(() => {
 
 const isActive = computed(() => {
   const { key } = props.channel;
-  if (key === 'group_messaging') {
+  if (['group_messaging', 'wecom_customer_service'].includes(key)) {
     return true;
   }
   if (Object.keys(props.enabledFeatures).length === 0) {
@@ -68,6 +68,7 @@ const isActive = computed(() => {
     'telegram',
     'line',
     'group_messaging',
+    'wecom_customer_service',
     'instagram',
     'tiktok',
     'voice',

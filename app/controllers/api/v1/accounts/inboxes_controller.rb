@@ -105,7 +105,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
   end
 
   def allowed_channel_types
-    %w[web_widget api email line telegram whatsapp sms group_messaging]
+    %w[web_widget api email line telegram whatsapp sms group_messaging wecom_customer_service]
   end
 
   def update_inbox_working_hours
@@ -217,7 +217,8 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
       'telegram' => Channel::Telegram,
       'whatsapp' => Channel::Whatsapp,
       'sms' => Channel::Sms,
-      'group_messaging' => Channel::GroupMessaging
+      'group_messaging' => Channel::GroupMessaging,
+      'wecom_customer_service' => Channel::WecomCustomerService
     }[permitted_params[:channel][:type]]
   end
 

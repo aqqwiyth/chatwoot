@@ -55,6 +55,10 @@ const shouldShowWhatsAppWebhookDetails = computed(() => {
   );
 });
 
+const isWecomCustomerService = computed(
+  () => currentInbox.value.channel_type === INBOX_TYPES.WECOM_CUSTOMER_SERVICE
+);
+
 const isWhatsAppEmbeddedSignup = computed(() => {
   return (
     isAWhatsAppCloudChannel.value &&
@@ -63,6 +67,12 @@ const isWhatsAppEmbeddedSignup = computed(() => {
 });
 
 const message = computed(() => {
+  if (isWecomCustomerService.value) {
+    return `${t('INBOX_MGMT.FINISH.MESSAGE')}. ${
+      currentInbox.value.callback_webhook_url
+    }`;
+  }
+
   if (isATwilioChannel.value) {
     return `${t('INBOX_MGMT.FINISH.MESSAGE')}. ${t(
       'INBOX_MGMT.ADD.TWILIO.API_CALLBACK.SUBTITLE'
@@ -216,6 +226,12 @@ onMounted(() => {
             lang="html"
             :script="currentInbox.callback_webhook_url"
           />
+        </div>
+        <div
+          v-if="isWecomCustomerService"
+          class="w-[50%] max-w-[50%] ml-[25%]"
+        >
+          <woot-code lang="html" :script="currentInbox.callback_webhook_url" />
         </div>
         <div class="w-[50%] max-w-[50%] ml-[25%]">
           <woot-code

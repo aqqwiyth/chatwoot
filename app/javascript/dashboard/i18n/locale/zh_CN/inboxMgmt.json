@@ -520,6 +520,10 @@
           "VOICE": {
             "TITLE": "语音",
             "DESCRIPTION": "与 Twilio 语音集成"
+          },
+          "WECOM_CUSTOMER_SERVICE": {
+            "TITLE": "微信客服",
+            "DESCRIPTION": "在 Chatwoot 展示消息，并转发到机器人 Webhook"
           }
         }
       },
@@ -554,6 +558,35 @@
         "SIGN_IN": "使用Google登录",
         "EMAIL_PLACEHOLDER": "输入电子邮件地址",
         "ERROR_MESSAGE": "连接Google时出现错误，请重试"
+      },
+      "WECOM_CUSTOMER_SERVICE": {
+        "TITLE": "微信客服频道",
+        "DESC": "在 Chatwoot 展示微信客服消息，并转发到机器人 Webhook。",
+        "CHANNEL_NAME": {
+          "LABEL": "收件箱名称"
+        },
+        "WEBHOOK_URL": {
+          "LABEL": "机器人 Webhook 地址"
+        },
+        "CALLBACK_TOKEN": {
+          "LABEL": "回调 Token"
+        },
+        "ENCODING_AES_KEY": {
+          "LABEL": "EncodingAESKey"
+        },
+        "CORP_ID": {
+          "LABEL": "企业 ID"
+        },
+        "SUBMIT_BUTTON": "创建微信客服频道",
+        "API": {
+          "ERROR_MESSAGE": "无法保存微信客服频道"
+        },
+        "OPEN_KFID": {
+          "LABEL": "指定 open_kfid"
+        },
+        "SECRET": {
+          "LABEL": "读取消息的 Secret"
+        }
       }
     },
     "DETAILS": {
@@ -1008,7 +1041,21 @@
         "LABEL": "Enable voice calling",
         "DESCRIPTION": "Allow agents to start and receive WhatsApp voice calls on this inbox. Available only on embedded-signup WhatsApp Cloud channels with calling permission granted by Meta."
       },
-      "UPDATE_PRE_CHAT_FORM_SETTINGS": "更新预聊天表单设置"
+      "UPDATE_PRE_CHAT_FORM_SETTINGS": "更新预聊天表单设置",
+      "WECOM_CUSTOMER_SERVICE": {
+        "TITLE": "微信客服配置",
+        "DESCRIPTION": "客服消息会在 Chatwoot 中创建会话，同时转发到机器人 Webhook。",
+        "WEBHOOK_URL": "机器人 Webhook 地址",
+        "OPEN_KFID": "指定 open_kfid",
+        "SECRET": "读取消息的 Secret",
+        "CALLBACK_TOKEN": "回调 Token",
+        "ENCODING_AES_KEY": "EncodingAESKey",
+        "CORP_ID": "企业 ID",
+        "SAVE": "保存微信客服配置",
+        "SUCCESS": "微信客服配置已更新",
+        "ERROR": "微信客服配置更新失败",
+        "CALLBACK_URL": "接收消息回调 URL"
+      }
     },
     "HELP_CENTER": {
       "LABEL": "帮助中心",
@@ -1374,7 +1421,8 @@
       "INSTAGRAM": "Instagram",
       "TIKTOK": "TikTok",
       "VOICE": "语音",
-      "GROUP_MESSAGING": "群聊"
+      "GROUP_MESSAGING": "群聊",
+      "WECOM_CUSTOMER_SERVICE": "微信客服"
     }
   }
 }

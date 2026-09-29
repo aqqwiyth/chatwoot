@@ -12,6 +12,7 @@ export const INBOX_TYPES = {
   INSTAGRAM: 'Channel::Instagram',
   TIKTOK: 'Channel::Tiktok',
   GROUP_MESSAGING: 'Channel::GroupMessaging',
+  WECOM_CUSTOMER_SERVICE: 'Channel::WecomCustomerService',
 };
 
 // Short channel-type slugs used to identify a channel without leaning on its
@@ -92,6 +93,7 @@ const INBOX_ICON_MAP_FILL = {
   [INBOX_TYPES.INSTAGRAM]: 'i-ri-instagram-fill',
   [INBOX_TYPES.TIKTOK]: 'i-ri-tiktok-fill',
   [INBOX_TYPES.GROUP_MESSAGING]: 'i-ri-chat-3-fill',
+  [INBOX_TYPES.WECOM_CUSTOMER_SERVICE]: 'i-ri-wechat-2-fill',
 };
 
 const DEFAULT_ICON_FILL = 'i-ri-chat-1-fill';
@@ -108,6 +110,7 @@ const INBOX_ICON_MAP_LINE = {
   [INBOX_TYPES.INSTAGRAM]: 'i-woot-instagram',
   [INBOX_TYPES.TIKTOK]: 'i-woot-tiktok',
   [INBOX_TYPES.GROUP_MESSAGING]: 'i-ri-chat-3-line',
+  [INBOX_TYPES.WECOM_CUSTOMER_SERVICE]: 'i-ri-wechat-2-line',
 };
 
 const DEFAULT_ICON_LINE = 'i-ri-chat-1-line';

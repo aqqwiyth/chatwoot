@@ -128,6 +128,18 @@ end
 json.provider resource.channel.try(:provider)
 json.callback_webhook_url resource.channel.callback_webhook_url if resource.group_messaging?
 
+if resource.wecom_customer_service?
+  json.inbox_identifier resource.channel.try(:identifier)
+  json.open_kfid resource.channel.try(:open_kfid)
+  json.webhook_url resource.channel.try(:webhook_url)
+  json.corp_id resource.channel.try(:corp_id)
+  if Current.account_user&.administrator?
+    json.secret resource.channel.try(:secret)
+    json.callback_token resource.channel.try(:callback_token)
+    json.encoding_aes_key resource.channel.try(:encoding_aes_key)
+  end
+end
+
 if resource.group_messaging?
   json.provider_config resource.channel.try(:provider_config) if Current.account_user&.administrator?
   json.capabilities resource.channel.try(:capabilities)

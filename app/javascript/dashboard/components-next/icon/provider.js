@@ -19,6 +19,7 @@ const channelTypeIconMap = {
   'Channel::Whatsapp': 'i-woot-whatsapp',
   'Channel::Instagram': 'i-woot-instagram',
   'Channel::Tiktok': 'i-woot-tiktok',
+  'Channel::WecomCustomerService': 'i-ri-wechat-2-line',
 };
 
 const providerIconMap = {

@@ -112,7 +112,8 @@ module Api::V1::InboxesHelper
       'telegram' => Current.account.telegram_channels,
       'whatsapp' => Current.account.whatsapp_channels,
       'sms' => Current.account.sms_channels,
-      'group_messaging' => Current.account.group_messaging_channels
+      'group_messaging' => Current.account.group_messaging_channels,
+      'wecom_customer_service' => Current.account.wecom_customer_service_channels
     }[permitted_params[:channel][:type]]
   end
 end

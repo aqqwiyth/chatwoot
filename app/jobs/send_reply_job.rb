@@ -13,7 +13,8 @@ class SendReplyJob < ApplicationJob
     'Channel::Email' => ::Email::SendOnEmailService,
     'Channel::WebWidget' => ::Messages::SendEmailNotificationService,
     'Channel::Api' => ::Messages::SendEmailNotificationService,
-    'Channel::GroupMessaging' => ::GroupMessaging::OutboundMessageService
+    'Channel::GroupMessaging' => ::GroupMessaging::OutboundMessageService,
+    'Channel::WecomCustomerService' => ::WecomCustomerService::SendOnChannelService
   }.freeze
 
   def perform(message_id)

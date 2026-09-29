@@ -346,6 +346,7 @@ export default {
         this.isATelegramChannel ||
         this.isALineChannel ||
         this.isAnInstagramChannel ||
+        this.isAWecomCustomerServiceChannel ||
         (this.isATiktokChannel && tiktokAttachmentSupported)
       );
     },

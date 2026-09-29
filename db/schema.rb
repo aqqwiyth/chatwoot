@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_29_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -502,8 +502,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["account_id"], name: "index_captain_faq_suggestions_on_account_id"
     t.index ["account_id", "assistant_id", "status", "language"], name: "idx_cap_faq_suggestions_on_account_assistant_status_language"
+    t.index ["account_id"], name: "index_captain_faq_suggestions_on_account_id"
     t.index ["assistant_id"], name: "index_captain_faq_suggestions_on_assistant_id"
     t.index ["embedding"], name: "vector_idx_captain_faq_suggestions_embedding", opclass: :vector_cosine_ops, using: :ivfflat
   end
@@ -584,18 +584,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.index ["identifier"], name: "index_channel_api_on_identifier", unique: true
   end
 
-  create_table "channel_group_messaging", force: :cascade do |t|
-    t.bigint "account_id", null: false
-    t.string "provider", null: false
-    t.string "identifier", null: false
-    t.jsonb "provider_config", default: {}, null: false
-    t.jsonb "capabilities", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["account_id"], name: "index_channel_group_messaging_on_account_id"
-    t.index ["provider", "identifier"], name: "index_channel_group_messaging_on_provider_and_identifier", unique: true
-  end
-
   create_table "channel_email", force: :cascade do |t|
     t.integer "account_id", null: false
     t.string "email", null: false
@@ -636,6 +624,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.string "instagram_id"
     t.index ["page_id", "account_id"], name: "index_channel_facebook_pages_on_page_id_and_account_id", unique: true
     t.index ["page_id"], name: "index_channel_facebook_pages_on_page_id"
+  end
+
+  create_table "channel_group_messaging", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "provider", null: false
+    t.string "identifier", null: false
+    t.jsonb "provider_config", default: {}, null: false
+    t.jsonb "capabilities", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_channel_group_messaging_on_account_id"
+    t.index ["provider", "identifier"], name: "index_channel_group_messaging_on_provider_and_identifier", unique: true
   end
 
   create_table "channel_instagram", force: :cascade do |t|
@@ -742,6 +742,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.index ["website_token"], name: "index_channel_web_widgets_on_website_token", unique: true
   end
 
+  create_table "channel_wecom_customer_services", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "identifier", null: false
+    t.string "open_kfid", null: false
+    t.string "secret", null: false
+    t.string "webhook_url", null: false
+    t.string "callback_token", null: false
+    t.string "encoding_aes_key", null: false
+    t.string "corp_id", null: false
+    t.string "cursor"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_channel_wecom_customer_services_on_account_id"
+    t.index ["identifier"], name: "index_channel_wecom_customer_services_on_identifier", unique: true
+  end
+
   create_table "channel_whatsapp", force: :cascade do |t|
     t.integer "account_id", null: false
     t.text "business_management_token"
@@ -755,8 +771,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.jsonb "phone_number_health", default: {}, null: false
     t.datetime "phone_number_health_checked_at"
     t.string "phone_number_health_error", limit: 500
-    t.index ["phone_number_health_checked_at"], name: "index_channel_whatsapp_on_phone_number_health_checked_at"
     t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
+    t.index ["phone_number_health_checked_at"], name: "index_channel_whatsapp_on_phone_number_health_checked_at"
   end
 
   create_table "companies", force: :cascade do |t|
@@ -801,14 +817,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.string "identifier"
     t.jsonb "custom_attributes", default: {}
     t.datetime "last_activity_at", precision: nil
-    t.integer "contact_type", default: 0
-    t.jsonb "extensions", default: {}, null: false
+    t.integer "contact_type", default: 0, null: false
     t.string "middle_name", default: ""
     t.string "last_name", default: ""
     t.string "location", default: ""
     t.string "country_code", default: ""
     t.boolean "blocked", default: false, null: false
     t.bigint "company_id"
+    t.jsonb "extensions", default: {}, null: false
     t.index "lower((email)::text), account_id", name: "index_contacts_on_lower_email_account_id"
     t.index ["account_id", "contact_type"], name: "index_contacts_on_account_id_and_contact_type"
     t.index ["account_id", "email", "phone_number", "identifier"], name: "index_contacts_on_nonempty_fields", where: "(((email)::text <> ''::text) OR ((phone_number)::text <> ''::text) OR ((identifier)::text <> ''::text))"
@@ -886,7 +902,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.bigint "campaign_id"
     t.datetime "snoozed_until", precision: nil
     t.jsonb "custom_attributes", default: {}
-    t.jsonb "extensions", default: {}, null: false
     t.datetime "assignee_last_seen_at", precision: nil
     t.datetime "first_reply_created_at", precision: nil
     t.integer "priority"
@@ -896,6 +911,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.bigint "assignee_agent_bot_id"
     t.string "ai_assignee_type"
     t.datetime "status_changed_at"
+    t.jsonb "extensions", default: {}, null: false
     t.index ["account_id", "display_id"], name: "index_conversations_on_account_id_and_display_id", unique: true
     t.index ["account_id", "id"], name: "index_conversations_on_id_and_account_id"
     t.index ["account_id", "inbox_id", "status", "assignee_id"], name: "conv_acid_inbid_stat_asgnid_idx"
@@ -1098,10 +1114,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "inbox_id"
-    t.index ["account_id", "name", "template_type", "locale"], name: "index_email_templates_on_account_scope", unique: true, where: "(account_id IS NOT NULL) AND (inbox_id IS NULL)"
+    t.index ["account_id", "name", "template_type", "locale"], name: "index_email_templates_on_account_scope", unique: true, where: "((account_id IS NOT NULL) AND (inbox_id IS NULL))"
     t.index ["inbox_id", "name", "template_type", "locale"], name: "index_email_templates_on_inbox_scope", unique: true, where: "(inbox_id IS NOT NULL)"
     t.index ["inbox_id"], name: "index_email_templates_on_inbox_id"
-    t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "(account_id IS NULL) AND (inbox_id IS NULL)"
+    t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "((account_id IS NULL) AND (inbox_id IS NULL))"
   end
 
   create_table "folders", force: :cascade do |t|
@@ -1277,11 +1293,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_06_000000) do
     t.index ["conversation_id", "account_id", "message_type", "created_at"], name: "index_messages_on_conversation_account_type_created"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["created_at"], name: "index_messages_on_created_at"
+    t.index ["inbox_id", "external_event_id"], name: "index_messages_on_inbox_id_and_external_event_id", unique: true, where: "(external_event_id IS NOT NULL)"
     t.index ["inbox_id"], name: "index_messages_on_inbox_id"
     t.index ["sender_type", "sender_id", "created_at"], name: "index_messages_on_sender_and_created"
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender_type_and_sender_id"
     t.index ["source_id"], name: "index_messages_on_source_id"
-    t.index ["inbox_id", "external_event_id"], name: "index_messages_on_inbox_id_and_external_event_id", unique: true, where: "(external_event_id IS NOT NULL)"
   end
 
   create_table "notes", force: :cascade do |t|

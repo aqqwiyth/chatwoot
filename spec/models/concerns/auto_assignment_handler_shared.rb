@@ -119,5 +119,15 @@ shared_examples_for 'auto_assignment_handler' do
       conversation.save!
       expect(conversation.reload.assignee).to eq(agent2)
     end
+
+    it 'enqueues a rebalance when an assigned conversation is resolved in Assignment V2' do
+      account.enable_features('assignment_v2')
+      account.save!
+      allow(AutoAssignment::AssignmentJob).to receive(:enqueue_for_inbox)
+
+      conversation.update!(status: :resolved)
+
+      expect(AutoAssignment::AssignmentJob).to have_received(:enqueue_for_inbox).with(inbox.id)
+    end
   end
 end

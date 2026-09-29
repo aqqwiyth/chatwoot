@@ -171,6 +171,10 @@ class Inbox < ApplicationRecord
     channel_type == 'Channel::GroupMessaging'
   end
 
+  def wecom_customer_service?
+    channel_type == 'Channel::WecomCustomerService'
+  end
+
   def twilio_whatsapp?
     channel_type == 'Channel::TwilioSms' && channel.medium == 'whatsapp'
   end
@@ -200,6 +204,8 @@ class Inbox < ApplicationRecord
       "#{ENV.fetch('FRONTEND_URL', nil)}/webhooks/line/#{channel.line_channel_id}"
     when 'Channel::Whatsapp'
       "#{ENV.fetch('FRONTEND_URL', nil)}/webhooks/whatsapp/#{channel.phone_number}"
+    when 'Channel::WecomCustomerService'
+      channel.callback_webhook_url
     end
   end
 

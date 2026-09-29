@@ -80,6 +80,9 @@ const getInboxName = inboxId => {
       <label class="text-sm font-medium text-n-slate-12">
         {{ t(`${BASE_KEY}.FORM.INBOX_CAPACITY_LIMIT.LABEL`) }}
       </label>
+      <p class="text-sm text-n-slate-11 mb-0">
+        {{ t(`${BASE_KEY}.FORM.INBOX_CAPACITY_LIMIT.DESCRIPTION`) }}
+      </p>
 
       <AddDataDropdown
         :label="t(`${BASE_KEY}.FORM.INBOX_CAPACITY_LIMIT.ADD_BUTTON`)"

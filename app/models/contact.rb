@@ -7,10 +7,11 @@
 #  id                    :integer          not null, primary key
 #  additional_attributes :jsonb
 #  blocked               :boolean          default(FALSE), not null
-#  contact_type          :integer          default("visitor")
+#  contact_type          :integer          default("visitor"), not null
 #  country_code          :string           default("")
 #  custom_attributes     :jsonb
 #  email                 :string
+#  extensions            :jsonb            not null
 #  identifier            :string
 #  last_activity_at      :datetime
 #  last_name             :string           default("")

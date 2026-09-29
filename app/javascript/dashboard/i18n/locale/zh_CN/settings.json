@@ -823,7 +823,7 @@
         "TITLE": "Agent capacity policy",
         "DESCRIPTION": "Manage workload for agents.",
         "FEATURES": [
-          "Define maximum conversations per inbox",
+          "设置每个收件箱的最大同时接待会话数",
           "Create exceptions based on labels and time",
           "Add agents to a policy - one policy per agent"
         ]
@@ -1029,12 +1029,13 @@
           "PLACEHOLDER": "输入描述"
         },
         "INBOX_CAPACITY_LIMIT": {
-          "LABEL": "Inbox capacity limits",
+          "LABEL": "每个收件箱的最大同时接待会话数",
+          "DESCRIPTION": "客服解决一个会话后，系统会自动分配下一个未分配会话。",
           "ADD_BUTTON": "Add inbox",
           "FIELD": {
             "SELECT_INBOX": "Select inbox",
-            "MAX_CONVERSATIONS": "Max conversations",
-            "SET_LIMIT": "Set limit"
+            "MAX_CONVERSATIONS": "最大同时接待会话数",
+            "SET_LIMIT": "设置并发上限"
           },
           "EMPTY_STATE": "没有设置收件箱限制"
         },
