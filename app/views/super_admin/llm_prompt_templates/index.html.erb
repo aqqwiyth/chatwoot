@@ -1,0 +1,7 @@
+<% content_for(:title) { 'Captain Prompt Templates' } %>
+<header class="main-content__header"><h1 class="main-content__page-title">Captain Prompt Templates</h1></header>
+<section class="main-content__body"><p class="text-sm text-slate-500">Only Super Admins can edit global templates. Delete a template to restore the repository default.</p>
+  <div class="mt-6 divide-y border rounded-lg"><% @templates.each do |template| %><div class="p-4 flex items-center justify-between"><div><strong><%= template.key %></strong><div class="text-xs text-slate-500">Revision <%= template.revision %> · <%= template.metadata['route'] %></div></div><div class="flex gap-3"><%= link_to 'Edit', edit_super_admin_llm_prompt_template_path(template), class: 'button' %><%= button_to 'Restore default', super_admin_llm_prompt_template_path(template), method: :delete, class: 'button' %></div></div><% end %></div>
+  <h2 class="mt-8 text-lg font-medium">Add method or custom template</h2>
+  <%= form_with url: super_admin_llm_prompt_templates_path, scope: :llm_prompt_template, class: 'grid gap-3 border rounded-lg p-4' do |form| %><%= form.text_field :key, placeholder: 'template key', class: 'border rounded p-2' %><%= form.text_area :content, rows: 8, placeholder: 'Liquid template', class: 'border rounded p-2 font-mono' %><%= form.submit 'Create template', class: 'button button--primary w-fit' %><% end %>
+</section>

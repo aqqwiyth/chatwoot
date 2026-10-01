@@ -38,7 +38,8 @@ class Captain::LabelSuggestionService < Captain::BaseTaskService
       ::Redis::Alfred::OPENAI_CONVERSATION_KEY,
       event_name: 'label_suggestion',
       conversation_id: conversation.id,
-      updated_at: conversation.last_activity_at.to_i
+      updated_at: conversation.last_activity_at.to_i,
+      prompt_revision: Captain::PromptResolver.revision('label_suggestion')
     )
   end
 

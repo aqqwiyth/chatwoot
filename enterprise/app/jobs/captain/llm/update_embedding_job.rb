@@ -4,6 +4,6 @@ class Captain::Llm::UpdateEmbeddingJob < ApplicationJob
   def perform(record, content)
     account_id = record.account_id
     embedding = Captain::Llm::EmbeddingService.new(account_id: account_id).get_embedding(content)
-    record.update!(embedding: embedding)
+    record.update!(embedding: embedding, embedding_profile_version: Llm::RouteResolver.embedding_profile_version(account_id))
   end
 end

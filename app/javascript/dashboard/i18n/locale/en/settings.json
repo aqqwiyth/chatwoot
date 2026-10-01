@@ -537,6 +537,12 @@
       "TITLE": "Model Configuration",
       "DESCRIPTION": "Select AI models for different features.",
       "SELECT_MODEL": "Select model",
+      "CUSTOM_MODEL": "Custom model ID",
+      "USE_CUSTOM_MODEL": "Use",
+      "SAVE_ROUTE": "Save route",
+      "ROUTE_OVERRIDES": "LLM route overrides",
+      "ROUTE_OVERRIDES_DESCRIPTION": "Override provider, model, and endpoint for this account.",
+      "EMBEDDING_DIMENSIONS": "Embedding dimensions: 1536 (fixed)",
       "CREDITS_PER_MESSAGE": "{credits} credit/message",
       "COMING_SOON": "Coming soon",
       "EDITOR": {

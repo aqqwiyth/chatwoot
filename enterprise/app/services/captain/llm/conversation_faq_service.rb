@@ -70,6 +70,7 @@ class Captain::Llm::ConversationFaqService < Llm::BaseAiService
       # SET LOCAL keeps the planner change scoped to this transaction.
       ApplicationRecord.connection.execute('SET LOCAL enable_indexscan = off')
       relation
+        .where(embedding_profile_version: Llm::RouteResolver.embedding_profile_version(conversation.account_id))
         .nearest_neighbors(:embedding, embedding, distance: 'cosine')
         .limit(MATCH_LIMIT)
         .select { |record| record.neighbor_distance < DISTANCE_THRESHOLD }

@@ -33,7 +33,7 @@ class Captain::Llm::ArticleWriterService < Captain::BaseTaskService
   end
 
   def system_prompt
-    <<~PROMPT
+    Captain::PromptResolver.render('article_writer', { locale_name: locale_name }, fallback: <<~PROMPT)
       You are rewriting web page content into a clean help-center article for a customer-support knowledge base.
       You may receive 1 to 3 source pages. When given multiple sources, merge them into ONE coherent article:
       deduplicate identical instructions, do not repeat the same step in different words, and order content

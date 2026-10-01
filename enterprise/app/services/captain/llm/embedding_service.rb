@@ -6,18 +6,27 @@ class Captain::Llm::EmbeddingService
   def initialize(account_id: nil)
     Llm::Config.initialize!
     @account_id = account_id
-    @embedding_model = self.class.embedding_model
+    @account = Account.find_by(id: account_id) if account_id
+    @route = Llm::RouteResolver.resolve(route_key: 'embedding', account: @account)
+    @embedding_model = @route&.dig(:model) || self.class.embedding_model
   end
 
   def self.embedding_model
-    InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_MODEL')&.value.presence || LlmConstants::DEFAULT_EMBEDDING_MODEL
+    Llm::RouteResolver.resolve(route_key: 'embedding')&.dig(:model) ||
+      InstallationConfig.find_by(name: 'CAPTAIN_EMBEDDING_MODEL')&.value.presence || LlmConstants::DEFAULT_EMBEDDING_MODEL
   end
 
   def get_embedding(content, model: @embedding_model)
     return [] if content.blank?
 
     instrument_embedding_call(instrumentation_params(content, model)) do
-      RubyLLM.embed(content, model: model).vectors
+      route = @route || {}
+      vectors = Llm::Config.with_route(route) do |context|
+        options = { model: model, provider: route[:llm_provider] || route[:provider], assume_model_exists: true }.compact
+        context.embed(content, **options)
+      end.vectors
+      validate_dimensions!(vectors)
+      vectors
     end
   rescue RubyLLM::Error => e
     Rails.logger.error "Embedding API Error: #{e.message}"
@@ -25,6 +34,12 @@ class Captain::Llm::EmbeddingService
   end
 
   private
+
+  def validate_dimensions!(vectors)
+    return vectors if vectors.length == 1536
+
+    raise EmbeddingsError, 'Configured embedding model must return 1536 dimensions'
+  end
 
   def instrumentation_params(content, model)
     {

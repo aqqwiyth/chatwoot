@@ -20,7 +20,11 @@ class Api::V1::Accounts::Captain::PreferencesController < Api::V1::Accounts::Bas
     {
       providers: Llm::Models.providers,
       models: Llm::Models.models,
-      features: features_with_account_preferences
+      features: features_with_account_preferences,
+      route_overrides: @current_account.llm_route_profiles.order(:route_key).map do |profile|
+        profile.as_runtime_config(source: :account_profile).except(:api_key).merge(api_key: profile.masked_api_key,
+                                                                                    dimensions: profile.embedding? ? 1536 : nil)
+      end
     }
   end
 

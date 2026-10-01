@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Captain::AssistantStatsController < Api::V1::Accounts::BaseController
-  OVERVIEW_SUMMARY_CACHE_VERSION = 'v1'.freeze
+  OVERVIEW_SUMMARY_CACHE_VERSION = 'v2'.freeze
   OVERVIEW_SUMMARY_CACHE_TTL = 1.hour
 
   before_action -> { authorize(Captain::Assistant, :metrics?) }
@@ -51,7 +51,8 @@ class Api::V1::Accounts::Captain::AssistantStatsController < Api::V1::Accounts::
       @assistant.cache_key_with_version,
       stats_window.range,
       stats_window.timezone,
-      Current.account.locale
+      Current.account.locale,
+      Captain::PromptResolver.revision('assistant_overview_summary')
     ].join(':')
   end
 

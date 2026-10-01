@@ -469,3 +469,50 @@ class Captain::Llm::SystemPromptsService
   end
 end
 # rubocop:enable Metrics/ClassLength
+
+# Keep the existing builders as safe repository defaults while allowing the
+# Super Admin template editor to override their output at runtime.
+class Captain::Llm::SystemPromptsService
+  class << self
+    alias_method :repository_faq_generator, :faq_generator
+    alias_method :repository_notes_generator, :notes_generator
+    alias_method :repository_attributes_generator, :attributes_generator
+    alias_method :repository_assistant_action_classifier, :assistant_action_classifier
+    alias_method :repository_assistant_false_promise_detector, :assistant_false_promise_detector
+    alias_method :repository_copilot_response_generator, :copilot_response_generator
+    alias_method :repository_assistant_response_generator, :assistant_response_generator
+    alias_method :repository_paginated_faq_generator, :paginated_faq_generator
+
+    def faq_generator(language = 'english')
+      Captain::PromptResolver.render('faq_generator', { language: language }, fallback: repository_faq_generator(language))
+    end
+
+    def notes_generator(language = 'english')
+      Captain::PromptResolver.render('notes_generator', { language: language }, fallback: repository_notes_generator(language))
+    end
+
+    def attributes_generator
+      Captain::PromptResolver.render('attributes_generator', fallback: repository_attributes_generator)
+    end
+
+    def assistant_action_classifier(has_custom_instructions: false)
+      Captain::PromptResolver.render('assistant_action_classifier', fallback: repository_assistant_action_classifier(has_custom_instructions: has_custom_instructions))
+    end
+
+    def assistant_false_promise_detector
+      Captain::PromptResolver.render('assistant_false_promise_detector', fallback: repository_assistant_false_promise_detector)
+    end
+
+    def copilot_response_generator(product_name, available_tools, config = {})
+      Captain::PromptResolver.render('copilot_response_generator', fallback: repository_copilot_response_generator(product_name, available_tools, config))
+    end
+
+    def assistant_response_generator(assistant_name, product_name, config = {}, contact: nil, custom_tools: [])
+      Captain::PromptResolver.render('assistant_response_generator', fallback: repository_assistant_response_generator(assistant_name, product_name, config, contact: contact, custom_tools: custom_tools))
+    end
+
+    def paginated_faq_generator(start_page, end_page, language = 'english')
+      Captain::PromptResolver.render('paginated_faq_generator', { start_page: start_page, end_page: end_page, language: language }, fallback: repository_paginated_faq_generator(start_page, end_page, language))
+    end
+  end
+end

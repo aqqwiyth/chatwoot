@@ -8,13 +8,20 @@ module Llm::FeatureRouter
       feature_key = feature.to_s
       raise UnknownFeatureError, "Unknown LLM feature: #{feature_key}" unless Llm::Models.feature?(feature_key)
 
+      configured_route = Llm::RouteResolver.route_for_feature(feature_key, account: account)
+      return configured_route.merge(feature: feature_key) if configured_route
+
       model, source = model_and_source(account, feature_key)
 
       {
         feature: feature_key,
         provider: provider_for(model, source),
         model: model,
-        source: source
+        source: source,
+        route_key: feature_key,
+        protocol: :openai_compatible,
+        endpoint: normalized_endpoint,
+        profile_version: 1
       }
     end
 
@@ -52,6 +59,11 @@ module Llm::FeatureRouter
       return unless account&.feature_enabled?('captain_integration_v2')
 
       CAPTAIN_V2_ASSISTANT_MODEL
+    end
+
+    def normalized_endpoint
+      endpoint = (InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.presence || 'https://api.openai.com').chomp('/')
+      endpoint.end_with?('/v1') || endpoint.include?('/compatible-mode/') ? endpoint : "#{endpoint}/v1"
     end
   end
 end

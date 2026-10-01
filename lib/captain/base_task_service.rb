@@ -41,14 +41,17 @@ class Captain::BaseTaskService
     # Community edition prerequisite checks
     # Enterprise module handles these with more specific error messages (cloud vs self-hosted)
     return { error: I18n.t('captain.disabled'), error_code: 403 } unless captain_tasks_enabled?
-    return { error: I18n.t('captain.api_key_missing'), error_code: 401 } unless api_key_configured?
+    route = resolved_route(feature: feature)
+    profile_route = route && route[:source].to_s.end_with?('profile')
+    return { error: I18n.t('captain.api_key_missing'), error_code: 401 } if profile_route && route[:api_key].blank?
+    return { error: I18n.t('captain.api_key_missing'), error_code: 401 } unless route&.dig(:api_key).present? || api_key_configured?
 
-    model = resolved_model(model: model, feature: feature)
+    model = model.presence && route[:source].to_sym == :default ? model : route[:model]
     instrumentation_params = build_instrumentation_params(model, messages)
     instrumentation_method = tools.any? ? :instrument_tool_session : :instrument_llm_call
 
     response = send(instrumentation_method, instrumentation_params) do
-      execute_ruby_llm_request(model: model, messages: messages, schema: schema, tools: tools)
+      execute_ruby_llm_request(model: model, messages: messages, schema: schema, tools: tools, route: route)
     end
 
     return response unless build_follow_up_context? && response[:message].present?
@@ -57,19 +60,32 @@ class Captain::BaseTaskService
   end
 
   def resolved_model(model:, feature:)
-    return model if feature.blank?
-
-    route = Llm::FeatureRouter.resolve(feature: feature, account: account)
-    return model if model.present? && route[:source] == :default
+    route = resolved_route(feature: feature)
+    return model if model.present? && route[:source].to_sym == :default
 
     route[:model]
   end
 
-  def execute_ruby_llm_request(model:, messages:, schema: nil, tools: [])
-    credential = llm_credential
+  def resolved_route(feature:)
+    return Llm::FeatureRouter.resolve(feature: feature, account: account) if feature.present?
 
-    Llm::Config.with_api_key(credential[:api_key], api_base: api_base) do |context|
-      chat = build_chat(context, model: model, messages: messages, schema: schema, tools: tools)
+    {
+      route_key: 'editor', provider: :openai, protocol: :openai_compatible,
+      model: GPT_MODEL, endpoint: api_base, api_key: system_api_key, source: :legacy, profile_version: 1
+    }
+  end
+
+  def execute_ruby_llm_request(model:, messages:, schema: nil, tools: [], route: nil)
+    route ||= resolved_route(feature: nil)
+    credential = llm_credential(route: route)
+    route = route.merge(api_key: credential[:api_key]) if credential[:api_key].present? && route[:api_key].blank?
+
+    runner = route[:source].to_s.end_with?('profile') ?
+      ->(&block) { Llm::Config.with_route(route, &block) } :
+      ->(&block) { Llm::Config.with_api_key(credential[:api_key], api_base: route[:endpoint], &block) }
+
+    runner.call do |context|
+      chat = build_chat(context, model: model, messages: messages, schema: schema, tools: tools, route: route)
 
       conversation_messages = messages.reject { |m| m[:role] == 'system' }
       return { error: 'No conversation messages provided', error_code: 400, request_messages: messages } if conversation_messages.empty?
@@ -82,8 +98,12 @@ class Captain::BaseTaskService
     { error: e.message, request_messages: messages }
   end
 
-  def build_chat(context, model:, messages:, schema: nil, tools: [])
-    chat = context.chat(model: model)
+  def build_chat(context, model:, messages:, schema: nil, tools: [], route: nil)
+    options = { model: model }
+    if route && route[:source].to_s.end_with?('profile')
+      options.merge!(provider: route[:llm_provider] || route[:provider], assume_model_exists: true)
+    end
+    chat = context.chat(**options)
     system_msg = messages.find { |m| m[:role] == 'system' }
     chat.with_instructions(system_msg[:content]) if system_msg
     chat.with_schema(schema) if schema
@@ -176,7 +196,9 @@ class Captain::BaseTaskService
     llm_credential&.dig(:api_key)
   end
 
-  def llm_credential
+  def llm_credential(route: nil)
+    return { api_key: route[:api_key], source: route[:source] } if route&.dig(:api_key).present?
+
     @llm_credential ||= if use_account_openai_hook?
                           hook_llm_credential || system_llm_credential
                         else
@@ -210,7 +232,7 @@ class Captain::BaseTaskService
   end
 
   def prompt_from_file(file_name)
-    Rails.root.join('lib/integrations/openai/openai_prompts', "#{file_name}.liquid").read
+    Captain::PromptResolver.render(file_name)
   end
 
   # Follow-up context for client-side refinement

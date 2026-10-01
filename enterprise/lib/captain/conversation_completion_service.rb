@@ -32,7 +32,7 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
   private
 
   def prompt_from_file(file_name)
-    Rails.root.join('enterprise/lib/captain/prompts', "#{file_name}.liquid").read
+    Captain::PromptResolver.render(file_name)
   end
 
   def format_evaluation_input

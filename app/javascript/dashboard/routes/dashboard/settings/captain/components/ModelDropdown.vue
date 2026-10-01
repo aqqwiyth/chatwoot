@@ -60,9 +60,14 @@ watch(
 const selectedModelDetails = computed(() => {
   if (!selectedModelId.value) return null;
   return (
-    availableModels.value.find(m => m.id === selectedModelId.value) || null
+    availableModels.value.find(m => m.id === selectedModelId.value) || {
+      id: selectedModelId.value,
+      display_name: `${selectedModelId.value} (custom)`,
+    }
   );
 });
+
+const customModel = ref('');
 
 const getCreditLabel = model => {
   const multiplier = model.credit_multiplier || 1;
@@ -88,6 +93,15 @@ provideDropdownContext({
 const selectModel = model => {
   selectedModelId.value = model.id;
   emit('change', { feature: props.featureKey, model: model.id });
+  closeDropdown();
+};
+
+const selectCustomModel = () => {
+  const model = customModel.value.trim();
+  if (!model) return;
+  selectedModelId.value = model;
+  emit('change', { feature: props.featureKey, model, custom: true });
+  customModel.value = '';
   closeDropdown();
 };
 </script>
@@ -148,6 +162,18 @@ const selectModel = model => {
           </div>
         </div>
       </DropdownItem>
+      <div class="p-2 border-t border-n-weak flex gap-2">
+        <input
+          v-model="customModel"
+          type="text"
+          class="min-w-0 flex-1 px-2 py-1 text-sm border rounded"
+          :placeholder="t('CAPTAIN_SETTINGS.MODEL_CONFIG.CUSTOM_MODEL')"
+          @keyup.enter="selectCustomModel"
+        />
+        <button type="button" class="text-sm" @click="selectCustomModel">
+          {{ t('CAPTAIN_SETTINGS.MODEL_CONFIG.USE_CUSTOM_MODEL') }}
+        </button>
+      </div>
     </DropdownBody>
   </div>
 </template>

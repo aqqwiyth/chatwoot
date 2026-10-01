@@ -28,7 +28,8 @@ module Enterprise::Concerns::Article
 
       limit = params.key?(:limit) ? params[:limit] : 5
 
-      article_embeddings = ArticleEmbedding.where(article_id: filtered_article_ids)
+      version = Llm::RouteResolver.embedding_profile_version(params[:account_id])
+      article_embeddings = ArticleEmbedding.where(article_id: filtered_article_ids, embedding_profile_version: version)
                                            .nearest_neighbors(:embedding, embedding, distance: 'cosine')
       article_embeddings = article_embeddings.limit(limit) if limit.present?
       article_ids = article_embeddings.pluck(:article_id)

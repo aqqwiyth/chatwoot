@@ -37,12 +37,17 @@ class Captain::FaqSuggestion < ApplicationRecord
   validates :question, :answer, :language, presence: true
 
   before_validation :ensure_account
+  before_validation :set_embedding_profile_version, if: -> { embedding.present? }
   after_commit :update_embedding, on: [:create, :update]
 
   scope :ordered, -> { order(source_count: :desc, updated_at: :desc) }
   scope :by_language, ->(language) { where(language: language) }
 
   private
+
+  def set_embedding_profile_version
+    self.embedding_profile_version ||= Llm::RouteResolver.embedding_profile_version(account_id)
+  end
 
   def ensure_account
     self.account = assistant&.account

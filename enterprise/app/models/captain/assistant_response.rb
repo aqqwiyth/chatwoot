@@ -37,6 +37,7 @@ class Captain::AssistantResponse < ApplicationRecord
 
   before_validation :ensure_account
   before_validation :ensure_status
+  before_validation :set_embedding_profile_version, if: -> { embedding.present? }
   before_validation :mark_as_edited, on: :update
   after_commit :update_response_embedding
 
@@ -49,7 +50,8 @@ class Captain::AssistantResponse < ApplicationRecord
 
   def self.search(query, account_id: nil)
     embedding = Captain::Llm::EmbeddingService.new(account_id: account_id).get_embedding(query)
-    nearest_neighbors(:embedding, embedding, distance: 'cosine').limit(5)
+    version = Llm::RouteResolver.embedding_profile_version(account_id)
+    where(embedding_profile_version: version).nearest_neighbors(:embedding, embedding, distance: 'cosine').limit(5)
   end
 
   def customer_visible_source_url
@@ -57,6 +59,10 @@ class Captain::AssistantResponse < ApplicationRecord
   end
 
   private
+
+  def set_embedding_profile_version
+    self.embedding_profile_version ||= Llm::RouteResolver.embedding_profile_version(account_id)
+  end
 
   def ensure_status
     self.status ||= :approved

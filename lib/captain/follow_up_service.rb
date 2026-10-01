@@ -44,7 +44,7 @@ class Captain::FollowUpService < Captain::BaseTaskService
   def build_follow_up_system_prompt(session_data)
     action_context = describe_previous_action(session_data['event_name'])
 
-    <<~PROMPT
+    Captain::PromptResolver.render('follow_up', { action_context: action_context }, fallback: <<~PROMPT)
       You just performed a #{action_context} action for a customer support agent.
       Your job now is to help them refine the result based on their feedback.
       Be concise and focused on their specific request.

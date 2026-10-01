@@ -14,6 +14,7 @@ import SectionLayout from '../account/components/SectionLayout.vue';
 import ModelSelector from './components/ModelSelector.vue';
 import FeatureToggle from './components/FeatureToggle.vue';
 import CaptainPaywall from 'next/captain/pageComponents/Paywall.vue';
+import RouteOverrideEditor from './components/RouteOverrideEditor.vue';
 
 const { t } = useI18n();
 const { captainEnabled } = useCaptain();
@@ -102,11 +103,13 @@ async function handleFeatureToggle({ feature, enabled }) {
   }
 }
 
-async function handleModelChange({ feature, model }) {
+async function handleModelChange({ feature, model, custom = false }) {
   try {
-    await captainConfigStore.updatePreferences({
-      captain_models: { [feature]: model },
-    });
+    if (custom) {
+      await captainConfigStore.updateRouteOverride(feature, { model });
+    } else {
+      await captainConfigStore.updatePreferences({ captain_models: { [feature]: model } });
+    }
     useAlert(t('CAPTAIN_SETTINGS.API.SUCCESS'));
   } catch (error) {
     useAlert(t('CAPTAIN_SETTINGS.API.ERROR'));
@@ -153,6 +156,14 @@ onMounted(() => {
               @change="handleModelChange"
             />
           </div>
+        </SectionLayout>
+
+        <SectionLayout
+          :title="t('CAPTAIN_SETTINGS.MODEL_CONFIG.ROUTE_OVERRIDES')"
+          :description="t('CAPTAIN_SETTINGS.MODEL_CONFIG.ROUTE_OVERRIDES_DESCRIPTION')"
+          with-border
+        >
+          <RouteOverrideEditor />
         </SectionLayout>
 
         <!-- Features Section -->

@@ -38,7 +38,8 @@ class Integrations::LlmBaseService
 
     # since the value from cache depends on the conversation last_activity_at, it will always be fresh
     format(::Redis::Alfred::OPENAI_CONVERSATION_KEY, event_name: event_name, conversation_id: conversation.id,
-                                                     updated_at: conversation.last_activity_at.to_i)
+                                                     updated_at: conversation.last_activity_at.to_i,
+                                                     prompt_revision: Captain::PromptResolver.revision(event_name))
   end
 
   def value_from_cache

@@ -21,7 +21,13 @@ class ArticleEmbedding < ApplicationRecord
 
   delegate :account_id, to: :article
 
+  before_validation :set_embedding_profile_version, if: -> { embedding.present? }
+
   private
+
+  def set_embedding_profile_version
+    self.embedding_profile_version ||= Llm::RouteResolver.embedding_profile_version(account_id)
+  end
 
   def update_response_embedding
     return unless saved_change_to_term? || embedding.nil?

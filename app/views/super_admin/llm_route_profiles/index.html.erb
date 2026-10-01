@@ -1,0 +1,35 @@
+<% content_for(:title) { 'Captain LLM Providers' } %>
+<header class="main-content__header"><h1 class="main-content__page-title">Captain LLM Providers</h1></header>
+<section class="main-content__body">
+  <p class="text-sm text-slate-500">Configure independent Chat and Embedding routes. API keys are encrypted and never shown in full.</p>
+  <%= button_to 'Import existing Captain settings', import_legacy_super_admin_llm_route_profiles_path, method: :post, class: 'button mt-4' %>
+  <div class="mt-6 space-y-4">
+    <% @profiles.each do |profile| %>
+      <%= form_with model: profile, url: super_admin_llm_route_profile_path(profile), method: :patch, class: 'border rounded-lg p-4 grid gap-3' do |form| %>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <%= form.text_field :route_key, placeholder: 'route_key', class: 'border rounded p-2', readonly: true %>
+          <%= form.select :provider, Llm::RouteProfile::PROVIDERS, {}, class: 'border rounded p-2' %>
+          <%= form.text_field :model, class: 'border rounded p-2' %>
+          <%= form.text_field :endpoint, class: 'border rounded p-2' %>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <%= form.password_field :api_key, placeholder: profile.masked_api_key || 'API key (leave blank to keep)', class: 'border rounded p-2' %>
+          <label class="flex items-center gap-2"><%= form.check_box :enabled %> Enabled</label>
+          <% if profile.embedding? %><span class="text-sm text-slate-500">Dimensions: 1536 (fixed)</span><% end %>
+        </div>
+        <%= form.submit 'Save', class: 'button button--primary w-fit' %>
+      <% end %>
+    <% end %>
+  </div>
+  <h2 class="mt-8 text-lg font-medium">Add route</h2>
+  <%= form_with model: Llm::RouteProfile.new, url: super_admin_llm_route_profiles_path, class: 'border rounded-lg p-4 grid gap-3' do |form| %>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <%= form.select :route_key, Llm::RouteProfile::ROUTE_KEYS, {}, class: 'border rounded p-2' %>
+      <%= form.select :provider, Llm::RouteProfile::PROVIDERS, {}, class: 'border rounded p-2' %>
+      <%= form.text_field :model, placeholder: 'Model ID', class: 'border rounded p-2' %>
+      <%= form.text_field :endpoint, placeholder: 'https://.../v1', class: 'border rounded p-2' %>
+    </div>
+    <%= form.password_field :api_key, placeholder: 'API key', class: 'border rounded p-2' %>
+    <%= form.submit 'Create', class: 'button button--primary w-fit' %>
+  <% end %>
+</section>

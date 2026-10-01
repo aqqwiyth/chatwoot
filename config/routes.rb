@@ -63,6 +63,7 @@ Rails.application.routes.draw do
           end
           namespace :captain do
             resource :preferences, only: [:show, :update]
+            resources :route_profiles, only: [:index, :create, :destroy], param: :route_key
             resources :assistants do
               member do
                 post :playground
@@ -722,6 +723,11 @@ Rails.application.routes.draw do
       root to: 'dashboard#index'
 
       resource :app_config, only: [:show, :create]
+      resources :llm_route_profiles, only: [:index, :create, :update, :destroy] do
+        post :test_connection, on: :member
+        post :import_legacy, on: :collection
+      end
+      resources :llm_prompt_templates, only: [:index, :create, :edit, :update, :destroy]
       resource :push_diagnostics, only: [:show, :create] do
         post :destroy_subscriptions, on: :collection
       end

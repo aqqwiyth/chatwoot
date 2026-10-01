@@ -38,7 +38,7 @@ class Captain::Llm::ArticleTranslationService < Captain::BaseTaskService
   end
 
   def title_system_prompt
-    <<~SYSTEM_PROMPT_MESSAGE
+    Captain::PromptResolver.render('article_translation_title', { target_language: target_language }, fallback: <<~SYSTEM_PROMPT_MESSAGE)
       You are a professional translator.
       Translate the following text to #{target_language}.
       Return only the translated text, no explanations or extra formatting.
@@ -46,7 +46,7 @@ class Captain::Llm::ArticleTranslationService < Captain::BaseTaskService
   end
 
   def content_system_prompt
-    <<~SYSTEM_PROMPT_MESSAGE
+    Captain::PromptResolver.render('article_translation_content', { target_language: target_language }, fallback: <<~SYSTEM_PROMPT_MESSAGE)
       You are a professional translator. Translate the following content to #{target_language}.
       The content is markdown that may contain embedded HTML blocks.
       Rules:

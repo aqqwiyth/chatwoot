@@ -29,6 +29,15 @@ module Llm::Config
       yield context
     end
 
+    def with_route(route)
+      initialize!
+      context = RubyLLM.context do |config|
+        config.openai_api_key = route[:api_key] if route[:api_key].present?
+        config.openai_api_base = route[:endpoint].to_s.chomp('/') if route[:endpoint].present?
+      end
+      yield context
+    end
+
     private
 
     def configure_ruby_llm

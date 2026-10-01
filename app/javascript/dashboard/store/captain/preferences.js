@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import CaptainPreferencesAPI from 'dashboard/api/captain/preferences';
+import CaptainRouteProfilesAPI from 'dashboard/api/captain/routeProfiles';
 
 export const useCaptainConfigStore = defineStore('captainConfig', {
   state: () => ({
     providers: {},
     models: {},
     features: {},
+    routeOverrides: [],
     uiFlags: {
       isFetching: false,
     },
@@ -54,6 +56,7 @@ export const useCaptainConfigStore = defineStore('captainConfig', {
         this.providers = response.data.providers || {};
         this.models = response.data.models || {};
         this.features = response.data.features || {};
+        this.routeOverrides = response.data.route_overrides || [];
       } catch (error) {
         // Ignore error
       } finally {
@@ -66,6 +69,17 @@ export const useCaptainConfigStore = defineStore('captainConfig', {
       this.providers = response.data.providers || {};
       this.models = response.data.models || {};
       this.features = response.data.features || {};
+      this.routeOverrides = response.data.route_overrides || [];
+    },
+
+    async updateRouteOverride(routeKey, data) {
+      await CaptainRouteProfilesAPI.save(routeKey, {
+        provider: 'openai',
+        protocol: 'openai_compatible',
+        enabled: true,
+        ...data,
+      });
+      await this.fetch();
     },
   },
 });
