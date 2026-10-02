@@ -2,12 +2,13 @@
 #
 # Table name: article_embeddings
 #
-#  id         :bigint           not null, primary key
-#  embedding  :vector(1536)
-#  term       :text             not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  article_id :bigint           not null
+#  id                        :bigint           not null, primary key
+#  embedding                 :vector(1536)
+#  embedding_profile_version :integer          default(1), not null
+#  term                      :text             not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  article_id                :bigint           not null
 #
 # Indexes
 #

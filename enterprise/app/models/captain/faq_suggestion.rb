@@ -2,17 +2,18 @@
 #
 # Table name: captain_faq_suggestions
 #
-#  id           :bigint           not null, primary key
-#  answer       :text             not null
-#  embedding    :vector(1536)
-#  language     :string           default("en"), not null
-#  question     :string           not null
-#  source_count :integer          default(0), not null
-#  status       :integer          default("open"), not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  account_id   :bigint           not null
-#  assistant_id :bigint           not null
+#  id                        :bigint           not null, primary key
+#  answer                    :text             not null
+#  embedding                 :vector(1536)
+#  embedding_profile_version :integer          default(1), not null
+#  language                  :string           default("en"), not null
+#  question                  :string           not null
+#  source_count              :integer          default(0), not null
+#  status                    :integer          default("open"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  account_id                :bigint           not null
+#  assistant_id              :bigint           not null
 #
 # Indexes
 #

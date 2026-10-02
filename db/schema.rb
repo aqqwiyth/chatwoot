@@ -194,9 +194,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_01_000000) do
     t.bigint "article_id", null: false
     t.text "term", null: false
     t.vector "embedding", limit: 1536
-    t.integer "embedding_profile_version", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "embedding_profile_version", default: 1, null: false
     t.index ["embedding"], name: "index_article_embeddings_on_embedding", using: :ivfflat
   end
 
@@ -502,9 +502,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_01_000000) do
     t.string "language", default: "en", null: false
     t.integer "source_count", default: 0, null: false
     t.integer "status", default: 0, null: false
-    t.integer "embedding_profile_version", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "embedding_profile_version", default: 1, null: false
     t.index ["account_id", "assistant_id", "status", "language"], name: "idx_cap_faq_suggestions_on_account_assistant_status_language"
     t.index ["account_id"], name: "index_captain_faq_suggestions_on_account_id"
     t.index ["assistant_id"], name: "index_captain_faq_suggestions_on_assistant_id"
@@ -1198,38 +1198,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_01_000000) do
     t.index ["name"], name: "index_installation_configs_on_name", unique: true
   end
 
-  create_table "llm_prompt_templates", force: :cascade do |t|
-    t.string "key", null: false
-    t.text "content", null: false
-    t.jsonb "metadata", default: {}, null: false
-    t.string "source_path"
-    t.string "source_checksum"
-    t.integer "revision", default: 1, null: false
-    t.bigint "updated_by_id"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["key"], name: "index_llm_prompt_templates_on_key", unique: true
-    t.index ["updated_by_id"], name: "index_llm_prompt_templates_on_updated_by_id"
-  end
-
-  create_table "llm_route_profiles", force: :cascade do |t|
-    t.bigint "account_id"
-    t.string "route_key", null: false
-    t.string "provider", default: "openai", null: false
-    t.string "protocol", default: "openai_compatible", null: false
-    t.string "model", null: false
-    t.string "endpoint"
-    t.text "api_key"
-    t.boolean "enabled", default: true, null: false
-    t.jsonb "options", default: {}, null: false
-    t.integer "version", default: 1, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["account_id", "route_key"], name: "index_llm_route_profiles_on_account_id_and_route_key", unique: true
-    t.index ["account_id"], name: "index_llm_route_profiles_on_account_id"
-    t.index ["route_key"], name: "index_llm_route_profiles_on_route_key"
-  end
-
   create_table "integrations_hooks", force: :cascade do |t|
     t.integer "status", default: 1
     t.integer "inbox_id"
@@ -1271,6 +1239,38 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_01_000000) do
     t.index ["account_id"], name: "index_leaves_on_account_id"
     t.index ["approved_by_id"], name: "index_leaves_on_approved_by_id"
     t.index ["user_id"], name: "index_leaves_on_user_id"
+  end
+
+  create_table "llm_prompt_templates", force: :cascade do |t|
+    t.string "key", null: false
+    t.text "content", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "source_path"
+    t.string "source_checksum"
+    t.integer "revision", default: 1, null: false
+    t.bigint "updated_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_llm_prompt_templates_on_key", unique: true
+    t.index ["updated_by_id"], name: "index_llm_prompt_templates_on_updated_by_id"
+  end
+
+  create_table "llm_route_profiles", force: :cascade do |t|
+    t.bigint "account_id"
+    t.string "route_key", null: false
+    t.string "provider", default: "openai", null: false
+    t.string "protocol", default: "openai_compatible", null: false
+    t.string "model", null: false
+    t.string "endpoint"
+    t.text "api_key"
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "options", default: {}, null: false
+    t.integer "version", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "route_key"], name: "index_llm_route_profiles_on_account_id_and_route_key", unique: true
+    t.index ["account_id"], name: "index_llm_route_profiles_on_account_id"
+    t.index ["route_key"], name: "index_llm_route_profiles_on_route_key"
   end
 
   create_table "macros", force: :cascade do |t|

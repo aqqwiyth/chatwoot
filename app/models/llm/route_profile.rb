@@ -1,3 +1,31 @@
+# == Schema Information
+#
+# Table name: llm_route_profiles
+#
+#  id         :bigint           not null, primary key
+#  api_key    :text
+#  enabled    :boolean          default(TRUE), not null
+#  endpoint   :string
+#  model      :string           not null
+#  options    :jsonb            not null
+#  protocol   :string           default("openai_compatible"), not null
+#  provider   :string           default("openai"), not null
+#  route_key  :string           not null
+#  version    :integer          default(1), not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  account_id :bigint
+#
+# Indexes
+#
+#  index_llm_route_profiles_on_account_id                (account_id)
+#  index_llm_route_profiles_on_account_id_and_route_key  (account_id,route_key) UNIQUE
+#  index_llm_route_profiles_on_route_key                 (route_key)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (account_id => accounts.id)
+#
 class Llm::RouteProfile < ApplicationRecord
   self.table_name = 'llm_route_profiles'
 
