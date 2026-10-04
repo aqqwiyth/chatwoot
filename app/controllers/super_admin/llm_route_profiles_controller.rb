@@ -45,16 +45,17 @@ class SuperAdmin::LlmRouteProfilesController < SuperAdmin::ApplicationController
   end
 
   def test_connection
+    attrs = profile_params
+    attrs = attrs.except(:api_key) if attrs[:api_key].blank?
+    @profile.assign_attributes(attrs)
+    validate_test_profile!
+
     route = @profile.as_runtime_config(source: :test)
-    result = Llm::Config.with_route(route) do |context|
-      if @profile.embedding?
-        vectors = context.embed('Chatwoot connection test', model: route[:model], provider: route[:llm_provider] || route[:provider], assume_model_exists: true).vectors
-        raise Llm::RouteProfile::ConfigurationError, 'Configured embedding model must return 1536 dimensions' unless vectors.length == 1536
-      else
-        context.chat(model: route[:model], provider: route[:llm_provider] || route[:provider], assume_model_exists: true).ask('Reply with OK')
-      end
-    end
-    render json: { ok: true, model: @profile.model, dimensions: result.respond_to?(:vectors) ? result.vectors.length : nil }
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    result = test_route(route)
+    elapsed_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
+
+    render json: { ok: true, model: @profile.model, dimensions: result[:dimensions], elapsed_ms: elapsed_ms }
   rescue StandardError => e
     render json: { ok: false, error: e.message }, status: :unprocessable_entity
   end
@@ -78,6 +79,32 @@ class SuperAdmin::LlmRouteProfilesController < SuperAdmin::ApplicationController
 
   def set_profile
     @profile = Llm::RouteProfile.global.find(params[:id])
+  end
+
+  def validate_test_profile!
+    raise Llm::RouteResolver::ConfigurationError, 'Model is required' if @profile.model.blank?
+    raise Llm::RouteResolver::ConfigurationError, 'Endpoint is required' if @profile.endpoint.blank?
+    raise Llm::RouteResolver::ConfigurationError, 'API key is required' if @profile.api_key.blank?
+  end
+
+  def test_route(route)
+    Llm::Config.with_route(route) do |context|
+      return test_embedding_route(context, route) if @profile.embedding?
+
+      context.chat(
+        model: route[:model], provider: route[:llm_provider] || route[:provider], assume_model_exists: true
+      ).ask('Reply with OK')
+      { dimensions: nil }
+    end
+  end
+
+  def test_embedding_route(context, route)
+    vectors = context.embed(
+      'Chatwoot connection test', model: route[:model], provider: route[:llm_provider] || route[:provider], assume_model_exists: true
+    ).vectors
+    return { dimensions: vectors.length } if vectors.length == 1536
+
+    raise Llm::RouteResolver::ConfigurationError, 'Configured embedding model must return 1536 dimensions'
   end
 
   def profile_params

@@ -5,7 +5,11 @@
   <%= button_to 'Import existing Captain settings', import_legacy_super_admin_llm_route_profiles_path, method: :post, class: 'button mt-4' %>
   <div class="mt-6 space-y-4">
     <% @profiles.each do |profile| %>
-      <%= form_with model: profile, url: super_admin_llm_route_profile_path(profile), method: :patch, class: 'border rounded-lg p-4 grid gap-3' do |form| %>
+      <%= form_with model: profile,
+                    url: super_admin_llm_route_profile_path(profile),
+                    method: :patch,
+                    class: 'border rounded-lg p-4 grid gap-3',
+                    data: { llm_route_form: true } do |form| %>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
           <%= form.text_field :route_key, placeholder: 'route_key', class: 'border rounded p-2', readonly: true %>
           <%= form.select :provider, Llm::RouteProfile::PROVIDERS, {}, class: 'border rounded p-2' %>
@@ -17,7 +21,18 @@
           <label class="flex items-center gap-2"><%= form.check_box :enabled %> Enabled</label>
           <% if profile.embedding? %><span class="text-sm text-slate-500">Dimensions: 1536 (fixed)</span><% end %>
         </div>
-        <%= form.submit 'Save', class: 'button button--primary w-fit' %>
+        <div class="flex items-center gap-3">
+          <%= form.submit 'Save', class: 'button button--primary w-fit' %>
+          <button
+            type="button"
+            class="button w-fit"
+            data-llm-test-button
+            data-test-url="<%= test_connection_super_admin_llm_route_profile_path(profile) %>"
+          >
+            Test
+          </button>
+          <span class="text-sm" data-llm-test-status aria-live="polite"></span>
+        </div>
       <% end %>
     <% end %>
   </div>
@@ -33,3 +48,44 @@
     <%= form.submit 'Create', class: 'button button--primary w-fit' %>
   <% end %>
 </section>
+
+<% content_for :javascript do %>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-llm-test-button]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const form = button.closest('[data-llm-route-form]');
+          const status = form.querySelector('[data-llm-test-status]');
+          const formData = new FormData(form);
+          formData.delete('_method');
+
+          button.disabled = true;
+          button.textContent = 'Testing...';
+          status.className = 'text-sm text-n-slate-11';
+          status.textContent = 'Validating configuration';
+
+          try {
+            const response = await fetch(button.dataset.testUrl, {
+              method: 'POST',
+              body: formData,
+              headers: { Accept: 'application/json' },
+              credentials: 'same-origin',
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) throw new Error(result.error || 'Connection test failed');
+
+            const dimensions = result.dimensions ? ` · ${result.dimensions} dimensions` : '';
+            status.className = 'text-sm text-green-700';
+            status.textContent = `Connected · ${result.model}${dimensions} · ${result.elapsed_ms} ms`;
+          } catch (error) {
+            status.className = 'text-sm text-red-700';
+            status.textContent = error.message;
+          } finally {
+            button.disabled = false;
+            button.textContent = 'Test';
+          }
+        });
+      });
+    });
+  </script>
+<% end %>
