@@ -55,7 +55,7 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 - [接收消息回调](https://developer.work.weixin.qq.com/document/path/94669)
 - [读取消息](https://developer.work.weixin.qq.com/document/path/94670)
 - [发送消息](https://developer.work.weixin.qq.com/document/path/94677)
-- `externalcontact/get`：获取客户详情
+- `kf/customer/batchget`：获取微信客服客户详情
 
 ### GET 验证
 
@@ -91,7 +91,7 @@ origin = 3  客户消息，处理
 
 每条客户消息会：
 
-1. 使用 `external_userid` 调用企业微信 `externalcontact/get`，仅使用返回的 `external_contact` 获取联系人昵称和头像，然后查找或创建 Chatwoot 联系人。
+1. 使用 `external_userid` 调用企业微信 `kf/customer/batchget`，从返回的 `customer_list` 获取联系人昵称和头像，然后查找或创建 Chatwoot 联系人。
 2. 为当前收件箱创建或复用 Contact Inbox。
 3. 创建一个未解决的 Conversation；如果原会话已经解决，则创建新会话。
 4. 创建一条 Chatwoot 入站消息。

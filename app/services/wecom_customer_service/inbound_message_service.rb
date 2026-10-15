@@ -61,11 +61,11 @@ class WecomCustomerService::InboundMessageService
   end
 
   def contact_attributes
-    external_contact = fetch_external_contact
+    customer = fetch_customer
 
     {
-      name: external_contact['name'].presence || external_userid,
-      avatar_url: external_contact['avatar'].presence,
+      name: customer['nickname'].presence || external_userid,
+      avatar_url: customer['avatar'].presence,
       identifier: "wecom:#{@channel.corp_id}:#{external_userid}",
       additional_attributes: {
         'wecom_external_userid' => external_userid,
@@ -74,10 +74,11 @@ class WecomCustomerService::InboundMessageService
     }
   end
 
-  def fetch_external_contact
-    @external_contact ||= WecomCustomerService::ApiClient.new(channel: @channel)
-                                                          .get_external_contact(external_userid: external_userid)
-                                                          .fetch('external_contact')
+  def fetch_customer
+    @customer ||= begin
+      payload = WecomCustomerService::ApiClient.new(channel: @channel).get_customer(external_userid: external_userid)
+      Array(payload['customer_list']).find { |customer| customer['external_userid'] == external_userid } || {}
+    end
   end
 
   def message_extensions
