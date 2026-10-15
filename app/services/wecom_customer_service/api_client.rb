@@ -28,14 +28,19 @@ class WecomCustomerService::ApiClient
     api_payload(response, 'sync_msg')
   end
 
-  def get_external_contact(external_userid:)
-    response = HTTParty.get(
-      "#{API_BASE_URL}/externalcontact/get",
-      query: { access_token: access_token, external_userid: external_userid },
+  def get_customer(external_userid:)
+    response = HTTParty.post(
+      "#{API_BASE_URL}/kf/customer/batchget",
+      query: { access_token: access_token },
+      headers: { 'Content-Type' => 'application/json' },
+      body: {
+        external_userid_list: [external_userid],
+        need_enter_session_context: 1
+      }.to_json,
       timeout: 10
     )
 
-    api_payload(response, 'externalcontact/get')
+    api_payload(response, 'kf/customer/batchget')
   end
 
   def send_text(external_userid:, content:)
