@@ -121,6 +121,24 @@ wecom:<corp_id>:<external_userid>
 
 下游 Agent 可以根据消息正文中的用户 ID、客服账号 ID 和消息 ID 做自动化处理。Webhook 请求失败时，任务会失败并重试；消息已写入 Chatwoot，但只有在 Webhook 成功后才会标记为已转发。
 
+## Agent Bot 转人工
+
+Agent Bot 不直接调用企业微信 API，而是通过 Messages API 创建一条私有文本消息：
+
+```json
+{
+  "content": "转人工",
+  "message_type": "outgoing",
+  "content_type": "text",
+  "private": true,
+  "extensions": {
+    "agent_bot_action": "handoff"
+  }
+}
+```
+
+Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，并调用 `kf/service_state/trans`。有接待中的客服时转给指定人员；没有可用客服时转入待接入队列。转接状态和客服 ID 会写回消息扩展，私有命令不会发送给客户。
+
 ## Chatwoot 管理员回复
 
 管理员在 Conversation 中发送回复后，Chatwoot 的 `SendReplyJob` 会调用微信客服发送消息接口：
