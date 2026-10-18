@@ -58,6 +58,33 @@ class WecomCustomerService::ApiClient
     api_payload(response, 'kf/service_state/get')
   end
 
+  def list_servicers
+    response = HTTParty.get(
+      "#{API_BASE_URL}/kf/servicer/list",
+      query: { access_token: access_token, open_kfid: @channel.open_kfid },
+      timeout: 10
+    )
+
+    api_payload(response, 'kf/servicer/list')
+  end
+
+  def transfer_service_state(external_userid:, service_state:, servicer_userid: nil)
+    response = HTTParty.post(
+      "#{API_BASE_URL}/kf/service_state/trans",
+      query: { access_token: access_token },
+      headers: { 'Content-Type' => 'application/json' },
+      body: {
+        open_kfid: @channel.open_kfid,
+        external_userid: external_userid,
+        service_state: service_state,
+        servicer_userid: servicer_userid
+      }.compact.to_json,
+      timeout: 10
+    )
+
+    api_payload(response, 'kf/service_state/trans')
+  end
+
   def send_text(external_userid:, content:)
     send_message(
       external_userid: external_userid,

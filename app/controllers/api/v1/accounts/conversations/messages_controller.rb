@@ -9,6 +9,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     user = Current.user || @resource
     mb = Messages::MessageBuilder.new(user, @conversation, params)
     @message = mb.perform
+    enqueue_wecom_handoff if wecom_handoff_request?
   rescue StandardError => e
     render_could_not_create_error(e.message)
   end
@@ -86,6 +87,22 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def already_translated_content_available?
     message.translations.present? && message.translations[permitted_params[:target_language]].present?
+  end
+
+  def wecom_handoff_request?
+    return false unless Current.user.is_a?(AgentBot)
+    return false unless @message.private? && @message.sender == Current.user
+    return false unless @message.content_type == 'text'
+    return false unless @conversation.inbox.wecom_customer_service?
+
+    @message.extensions.to_h['agent_bot_action'] == 'handoff'
+  end
+
+  def enqueue_wecom_handoff
+    extensions = @message.extensions.to_h.deep_stringify_keys
+    extensions['handoff'] = extensions.fetch('handoff', {}).merge('status' => 'pending')
+    @message.update!(extensions: extensions)
+    ::WecomCustomerServiceHandoffJob.perform_later(@message.id)
   end
 
   # API inbox check

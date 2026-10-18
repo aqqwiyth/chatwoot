@@ -37,6 +37,7 @@ class AgentBotListener < BaseListener
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
     return unless message.webhook_sendable?
+    return if agent_bot_command?(message)
 
     method_name = __method__.to_s
     agent_bots_for(inbox, message.conversation).each { |agent_bot| process_message_event(method_name, agent_bot, message, event) }
@@ -46,6 +47,7 @@ class AgentBotListener < BaseListener
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
     return unless message.webhook_sendable?
+    return if agent_bot_command?(message)
 
     method_name = __method__.to_s
     agent_bots_for(inbox, message.conversation).each { |agent_bot| process_message_event(method_name, agent_bot, message, event) }
@@ -87,5 +89,9 @@ class AgentBotListener < BaseListener
 
     AgentBots::WebhookJob.perform_later(agent_bot.outgoing_url, payload, :agent_bot_webhook,
                                         secret: agent_bot.secret, delivery_id: SecureRandom.uuid)
+  end
+
+  def agent_bot_command?(message)
+    message.extensions.to_h['agent_bot_action'].present?
   end
 end
