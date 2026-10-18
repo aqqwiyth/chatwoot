@@ -82,19 +82,20 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 
 ## 消息同步和 Chatwoot 展示
 
-Sidekiq 任务使用微信客服接口读取消息，并只处理客户消息：
+Sidekiq 任务使用微信客服接口读取消息，并处理客户消息和人工客服消息：
 
 ```text
-origin = 3  客户消息，处理
-其他值     客服或系统消息，忽略
+origin = 3  客户消息，处理并转发机器人 Webhook
+origin = 5  人工客服消息，处理并展示
+其他值     系统消息，忽略
 ```
 
-每条客户消息会：
+每条客户消息和人工客服消息会：
 
 1. 使用 `external_userid` 调用企业微信 `kf/customer/batchget`，从返回的 `customer_list` 获取联系人昵称和头像，然后查找或创建 Chatwoot 联系人。
 2. 为当前收件箱创建或复用 Contact Inbox。
 3. 创建一个未解决的 Conversation；如果原会话已经解决，则创建新会话。
-4. 创建一条 Chatwoot 入站消息。
+4. 客户消息创建一条 Chatwoot 入站消息；`origin=5` 的人工客服消息创建一条 Chatwoot 出站消息，并在消息扩展中保存 `servicer_userid`。
 5. 使用微信客服 `msgid` 做幂等判断，避免重复创建消息。
 6. 更新微信客服同步游标。
 
@@ -138,7 +139,7 @@ wecom:<corp_id>:<external_userid>
 
 发送目标使用当前 Conversation 的 Contact Inbox `source_id`，即微信客服的 `external_userid`。
 
-微信客服对消息发送有时间窗口、条数和客服账号 API 权限限制。如果微信客服 API 返回错误，Chatwoot 会在 Sidekiq 日志中记录错误，消息不会被静默标记为已发送。
+微信客服对消息发送有时间窗口、条数和客服账号 API 权限限制。如果微信客服 API 返回错误，Chatwoot 会查询当前会话状态，将原始错误和 `service_state` 写入消息失败原因，并在 Conversation 前端展示。只有 `service_state=0`（未处理）和 `1`（机器人接待中）可以通过 API 回复；`3` 表示当前由人工客服接待。
 
 ## 本地测试
 

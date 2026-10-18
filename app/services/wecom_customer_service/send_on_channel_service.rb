@@ -1,4 +1,12 @@
 class WecomCustomerService::SendOnChannelService < Base::SendOnChannelService
+  SERVICE_STATE_LABELS = {
+    0 => '未处理',
+    1 => '机器人接待中',
+    2 => '排队中',
+    3 => '人工接待中',
+    4 => '已结束/超过24小时'
+  }.freeze
+
   private
 
   def channel_class
@@ -13,6 +21,21 @@ class WecomCustomerService::SendOnChannelService < Base::SendOnChannelService
     message.attachments.each do |attachment|
       send_attachment(api_client, external_userid, attachment)
     end
+  rescue StandardError => e
+    error_message = send_error_message(api_client, external_userid, e)
+    Rails.logger.error "WecomCustomerService::SendOnChannelService failed: #{error_message}"
+    Messages::StatusUpdateService.new(message, 'failed', error_message).perform
+  end
+
+  def send_error_message(api_client, external_userid, error)
+    service_state = api_client.get_service_state(external_userid: external_userid)
+    state = service_state.fetch('service_state').to_i
+    state_label = SERVICE_STATE_LABELS[state]
+    suffix = " (service_state: #{state}#{": #{state_label}" if state_label})"
+    "#{error.message}#{suffix}"
+  rescue StandardError => state_error
+    Rails.logger.warn "WeCom service state lookup failed: #{state_error.class}: #{state_error.message}"
+    error.message
   end
 
   def send_text(api_client, external_userid)

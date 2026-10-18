@@ -43,6 +43,21 @@ class WecomCustomerService::ApiClient
     api_payload(response, 'kf/customer/batchget')
   end
 
+  def get_service_state(external_userid:)
+    response = HTTParty.post(
+      "#{API_BASE_URL}/kf/service_state/get",
+      query: { access_token: access_token },
+      headers: { 'Content-Type' => 'application/json' },
+      body: {
+        open_kfid: @channel.open_kfid,
+        external_userid: external_userid
+      }.to_json,
+      timeout: 10
+    )
+
+    api_payload(response, 'kf/service_state/get')
+  end
+
   def send_text(external_userid:, content:)
     send_message(
       external_userid: external_userid,

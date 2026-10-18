@@ -1,4 +1,8 @@
 class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
+  CUSTOMER_MESSAGE_ORIGIN = 3
+  SERVICER_MESSAGE_ORIGIN = 5
+  SUPPORTED_MESSAGE_ORIGINS = [CUSTOMER_MESSAGE_ORIGIN, SERVICER_MESSAGE_ORIGIN].freeze
+
   queue_as :default
 
   retry_on StandardError, wait: 10.seconds, attempts: 3
@@ -23,7 +27,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       payload = api_client.sync_messages(cursor: cursor, callback_token: callback_token)
 
       Array(payload['msg_list']).each do |message|
-        process_message(channel, message) if message['origin'].to_i == 3
+        process_message(channel, message) if supported_message_origin?(message)
       end
 
       next_cursor = payload['next_cursor'].to_s.presence
@@ -48,6 +52,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     media_file = download_media(channel, message)
     stored_message = WecomCustomerService::InboundMessageService.new(channel: channel, message: message, content: content,
                                                                       media_file: media_file).perform
+    return unless customer_message?(message)
     return if stored_message.extensions.to_h['webhook_forwarded'] == true
 
     begin
@@ -63,6 +68,14 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     stored_message.update!(extensions: stored_message.extensions.to_h.merge('webhook_forwarded' => true))
   ensure
     media_file&.io&.close!
+  end
+
+  def supported_message_origin?(message)
+    SUPPORTED_MESSAGE_ORIGINS.include?(message['origin'].to_i)
+  end
+
+  def customer_message?(message)
+    message['origin'].to_i == CUSTOMER_MESSAGE_ORIGIN
   end
 
   def download_media(channel, message)

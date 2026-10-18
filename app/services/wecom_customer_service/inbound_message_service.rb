@@ -31,17 +31,35 @@ class WecomCustomerService::InboundMessageService
     message = conversation.messages.build(
       account_id: inbox.account_id,
       inbox_id: inbox.id,
-      message_type: :incoming,
-      sender: contact_inbox.contact,
+      message_type: message_type,
+      status: outgoing_service_message? ? :delivered : :sent,
+      sender: message_sender(contact_inbox),
       content: @content,
       source_id: @message.fetch('msgid'),
       external_event_id: external_event_id,
+      content_attributes: content_attributes,
       extensions: message_extensions,
       created_at: message_created_at
     )
     attach_media(message)
     message.save!
     message
+  end
+
+  def message_type
+    outgoing_service_message? ? :outgoing : :incoming
+  end
+
+  def outgoing_service_message?
+    @message['origin'].to_i == 5
+  end
+
+  def message_sender(contact_inbox)
+    message_type == :incoming ? contact_inbox.contact : nil
+  end
+
+  def content_attributes
+    outgoing_service_message? ? { 'external_echo' => true } : {}
   end
 
   def find_or_create_conversation(contact_inbox)
@@ -82,17 +100,30 @@ class WecomCustomerService::InboundMessageService
   end
 
   def message_extensions
-    {
+    extensions = {
       'provider' => 'wecom_customer_service',
       'wecom' => {
         'msgid' => @message['msgid'],
         'open_kfid' => @message['open_kfid'],
         'external_userid' => external_userid,
         'msgtype' => @message['msgtype'],
-        'send_time' => @message['send_time']
+        'send_time' => @message['send_time'],
+        'origin' => @message['origin'].to_i
       },
       'webhook_forwarded' => false
     }
+
+    servicer_userid = @message['servicer_userid'].presence
+    if outgoing_service_message? && servicer_userid.present?
+      extensions['wecom']['servicer_userid'] = servicer_userid
+      extensions['actor'] = {
+        'display_name' => servicer_userid,
+        'external_id' => servicer_userid,
+        'identity_key' => "wecom:servicer:#{servicer_userid}"
+      }
+    end
+
+    extensions
   end
 
   def message_created_at
