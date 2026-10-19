@@ -10,6 +10,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     mb = Messages::MessageBuilder.new(user, @conversation, params)
     @message = mb.perform
     enqueue_wecom_handoff if wecom_handoff_request?
+    enqueue_wecom_event_response if wecom_event_response_request?
   rescue StandardError => e
     render_could_not_create_error(e.message)
   end
@@ -56,6 +57,25 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   private
+
+  def wecom_event_response_request?
+    return false unless Current.user.is_a?(AgentBot)
+    return false unless @message.private? && @message.sender == Current.user
+    return false unless @message.content_type == 'text'
+    return false unless @conversation.inbox.wecom_customer_service?
+
+    @message.extensions.to_h['agent_bot_action'] == 'wecom_event_response'
+  end
+
+  def enqueue_wecom_event_response
+    extensions = @message.extensions.to_h.deep_stringify_keys
+    response = extensions.fetch('wecom_event_response', {})
+    extensions['wecom_event_response'] = response.merge(
+      'msgid' => response['msgid'].presence || "cw_#{Digest::SHA256.hexdigest(@message.id.to_s)[0, 24]}"
+    )
+    @message.update!(extensions: extensions)
+    WecomCustomerServiceEventResponseJob.perform_later(@message.id)
+  end
 
   def message
     @message ||= @conversation.messages.find(permitted_params[:id])

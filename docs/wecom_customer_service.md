@@ -33,6 +33,9 @@ Chatwoot 管理员回复
 | 回调 Token | 用于校验回调签名 |
 | EncodingAESKey | 用于解密微信客服回调内容，必须是 43 位字符串 |
 | 机器人 Webhook 地址 | Chatwoot 同步客户消息后发送的下游地址 |
+| 欢迎语 | 用户进入会话事件的固定欢迎语，可选 |
+| 接入会话话术 | 会话变更为接入客服（`change_type=1`）时的固定话术，可选 |
+| 结束会话话术 | 会话变更为结束会话（`change_type=3`）时的固定话术，可选 |
 
 收件箱创建后，Chatwoot 会生成回调地址：
 
@@ -55,6 +58,7 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 - [接收消息回调](https://developer.work.weixin.qq.com/document/path/94669)
 - [读取消息](https://developer.work.weixin.qq.com/document/path/94670)
 - [发送消息](https://developer.work.weixin.qq.com/document/path/94677)
+- [发送欢迎语等事件响应消息](https://developer.work.weixin.qq.com/document/path/95122)
 - `kf/customer/batchget`：获取微信客服客户详情
 
 ### GET 验证
@@ -82,21 +86,40 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 
 ## 消息同步和 Chatwoot 展示
 
-Sidekiq 任务使用微信客服接口读取消息，并只处理客户消息：
+Sidekiq 任务使用微信客服接口读取消息，并处理所有同步条目：
 
 ```text
-origin = 3  客户消息，处理
-其他值     客服或系统消息，忽略
+origin = 3  客户消息，创建入站消息并转发
+origin = 5  人工客服消息，创建出站消息并转发
+origin = 4  系统事件，按事件是否带客户 ID 创建消息并转发
+其他值     保留原文并转发
 ```
 
-每条客户消息会：
+每条客户消息、人工客服消息和可关联客户的事件会：
 
 1. 使用 `external_userid` 调用企业微信 `kf/customer/batchget`，从返回的 `customer_list` 获取联系人昵称和头像，然后查找或创建 Chatwoot 联系人。
 2. 为当前收件箱创建或复用 Contact Inbox。
 3. 创建一个未解决的 Conversation；如果原会话已经解决，则创建新会话。
-4. 创建一条 Chatwoot 入站消息。
+4. 客户消息创建一条 Chatwoot 入站消息；`origin=5` 的人工客服消息创建一条 Chatwoot 出站消息，并在消息扩展中保存 `servicer_userid`。
 5. 使用微信客服 `msgid` 做幂等判断，避免重复创建消息。
 6. 更新微信客服同步游标。
+
+每条同步条目都会向机器人 Webhook 增加 `origin`、`content` 和 `raw_message` 字段，同时保留原有 `msgtype=text` 和 `text.content` 格式。没有 `event.external_userid` 的事件不会创建 Chatwoot 会话，但会直接投递给收件箱 Agent Bot。
+
+对于 `enter_session` 和 `session_status_change` 事件，配置的固定话术会立即通过 `kf/send_msg_on_event` 发送。Agent Bot 也可以创建私有文本命令触发同一接口：
+
+```json
+{
+  "content": "欢迎语内容",
+  "message_type": "outgoing",
+  "content_type": "text",
+  "private": true,
+  "extensions": {
+    "agent_bot_action": "wecom_event_response",
+    "wecom_event_response": { "code": "WELCOME_CODE" }
+  }
+}
+```
 
 联系人会保存微信客服客户 ID，格式为：
 
@@ -115,7 +138,11 @@ wecom:<corp_id>:<external_userid>
   "msgtype": "text",
   "text": {
     "content": "[微信客服] 用户: wm_xxx | 客服账号: wk_xxx | 消息 ID: msg_xxx\n客户消息内容"
-  }
+  },
+  "event": "wecom_sync_message",
+  "origin": 3,
+  "content": "客户消息内容",
+  "raw_message": { "msgid": "msg_xxx", "msgtype": "text" }
 }
 ```
 
@@ -156,7 +183,7 @@ Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，�
 
 发送目标使用当前 Conversation 的 Contact Inbox `source_id`，即微信客服的 `external_userid`。
 
-微信客服对消息发送有时间窗口、条数和客服账号 API 权限限制。如果微信客服 API 返回错误，Chatwoot 会在 Sidekiq 日志中记录错误，消息不会被静默标记为已发送。
+微信客服对消息发送有时间窗口、条数和客服账号 API 权限限制。如果微信客服 API 返回错误，Chatwoot 会查询当前会话状态，将原始错误和 `service_state` 写入消息失败原因，并在 Conversation 前端展示。只有 `service_state=0`（未处理）和 `1`（机器人接待中）可以通过 API 回复；`3` 表示当前由人工客服接待。
 
 ## 本地测试
 

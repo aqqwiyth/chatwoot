@@ -102,6 +102,23 @@ class WecomCustomerService::ApiClient
     )
   end
 
+  def send_event_response(code:, content:, msgid: nil)
+    response = HTTParty.post(
+      "#{API_BASE_URL}/kf/send_msg_on_event",
+      query: { access_token: access_token },
+      headers: { 'Content-Type' => 'application/json' },
+      body: {
+        code: code,
+        msgid: msgid,
+        msgtype: 'text',
+        text: { content: content.to_s.truncate(2048, omission: '…') }
+      }.compact.to_json,
+      timeout: 10
+    )
+
+    api_payload(response, 'send_msg_on_event')
+  end
+
   def download_media(media_id:)
     response = HTTParty.get(
       "#{API_BASE_URL}/media/get",

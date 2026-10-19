@@ -81,6 +81,15 @@ class AgentBotListener < BaseListener
   def process_message_event(method_name, agent_bot, message, _event)
     # Only webhook bots are supported
     payload = message.webhook_data.merge(event: method_name)
+    wecom = message.extensions.to_h['wecom'].to_h
+    if wecom['raw_message'].present?
+      payload = payload.merge(
+        source: 'wecom_customer_service',
+        origin: wecom['origin'],
+        content: message.content,
+        raw_message: wecom['raw_message']
+      )
+    end
     process_webhook_bot_event(agent_bot, payload)
   end
 
@@ -88,7 +97,15 @@ class AgentBotListener < BaseListener
     return if agent_bot.outgoing_url.blank?
 
     AgentBots::WebhookJob.perform_later(agent_bot.outgoing_url, payload, :agent_bot_webhook,
-                                        secret: agent_bot.secret, delivery_id: SecureRandom.uuid)
+                                        secret: agent_bot.secret, delivery_id: webhook_delivery_id(payload))
+  end
+
+  def webhook_delivery_id(payload)
+    raw_message = payload[:raw_message]
+    return SecureRandom.uuid if raw_message.blank?
+
+    message_id = raw_message['msgid'] || raw_message[:msgid] || raw_message.to_json
+    Digest::SHA256.hexdigest("wecom:#{message_id}")
   end
 
   def agent_bot_command?(message)

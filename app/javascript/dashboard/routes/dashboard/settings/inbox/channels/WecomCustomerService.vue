@@ -26,6 +26,9 @@ export default {
       callbackToken: '',
       encodingAesKey: '',
       corpId: '',
+      welcomeMessage: '',
+      sessionAssignedMessage: '',
+      sessionEndedMessage: '',
     };
   },
   computed: {
@@ -56,6 +59,9 @@ export default {
             callback_token: this.callbackToken.trim(),
             encoding_aes_key: this.encodingAesKey.trim(),
             corp_id: this.corpId.trim(),
+            welcome_message: this.welcomeMessage.trim(),
+            session_assigned_message: this.sessionAssignedMessage.trim(),
+            session_ended_message: this.sessionEndedMessage.trim(),
           },
         });
 
@@ -108,6 +114,18 @@ export default {
       <label :class="{ error: v$.corpId.$error }">
         {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CORP_ID.LABEL') }}
         <input v-model="corpId" type="text" @blur="v$.corpId.$touch" />
+      </label>
+      <label>
+        {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.WELCOME_MESSAGE.LABEL') }}
+        <textarea v-model="welcomeMessage" rows="2" />
+      </label>
+      <label>
+        {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.SESSION_ASSIGNED_MESSAGE.LABEL') }}
+        <textarea v-model="sessionAssignedMessage" rows="2" />
+      </label>
+      <label>
+        {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.SESSION_ENDED_MESSAGE.LABEL') }}
+        <textarea v-model="sessionEndedMessage" rows="2" />
       </label>
       <div class="w-full mt-4">
         <NextButton

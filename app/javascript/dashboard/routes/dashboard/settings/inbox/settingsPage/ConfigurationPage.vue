@@ -65,6 +65,9 @@ export default {
       wecomCustomerCorpId: '',
       wecomCustomerOpenKfid: '',
       wecomCustomerSecret: '',
+      wecomCustomerWelcomeMessage: '',
+      wecomCustomerSessionAssignedMessage: '',
+      wecomCustomerSessionEndedMessage: '',
     };
   },
   validations: {
@@ -167,6 +170,11 @@ export default {
         this.wecomCustomerCorpId = this.inbox.corp_id || '';
         this.wecomCustomerOpenKfid = this.inbox.open_kfid || '';
         this.wecomCustomerSecret = this.inbox.secret || '';
+        this.wecomCustomerWelcomeMessage = this.inbox.welcome_message || '';
+        this.wecomCustomerSessionAssignedMessage =
+          this.inbox.session_assigned_message || '';
+        this.wecomCustomerSessionEndedMessage =
+          this.inbox.session_ended_message || '';
       }
       this.$nextTick(() => {
         this.isSettingDefaults = false;
@@ -248,6 +256,10 @@ export default {
             corp_id: this.wecomCustomerCorpId.trim(),
             open_kfid: this.wecomCustomerOpenKfid.trim(),
             secret: this.wecomCustomerSecret.trim(),
+            welcome_message: this.wecomCustomerWelcomeMessage.trim(),
+            session_assigned_message:
+              this.wecomCustomerSessionAssignedMessage.trim(),
+            session_ended_message: this.wecomCustomerSessionEndedMessage.trim(),
           },
         });
         useAlert(
@@ -634,6 +646,24 @@ export default {
         v-model.trim="wecomCustomerCorpId"
         :label="$t(
           'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CORP_ID'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerWelcomeMessage"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.WELCOME_MESSAGE'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerSessionAssignedMessage"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SESSION_ASSIGNED_MESSAGE'
+        )"
+      />
+      <woot-input
+        v-model.trim="wecomCustomerSessionEndedMessage"
+        :label="$t(
+          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SESSION_ENDED_MESSAGE'
         )"
       />
       <NextButton solid blue @click="updateWecomCustomerService">

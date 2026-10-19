@@ -2,18 +2,21 @@
 #
 # Table name: channel_wecom_customer_services
 #
-#  id               :bigint           not null, primary key
-#  callback_token   :string           not null
-#  cursor           :string
-#  encoding_aes_key :string           not null
-#  identifier       :string           not null
-#  open_kfid        :string           not null
-#  secret           :string           not null
-#  webhook_url      :string           not null
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
-#  account_id       :bigint           not null
-#  corp_id          :string           not null
+#  id                       :bigint           not null, primary key
+#  callback_token           :string           not null
+#  cursor                   :string
+#  encoding_aes_key         :string           not null
+#  identifier               :string           not null
+#  open_kfid                :string           not null
+#  secret                   :string           not null
+#  session_assigned_message :text
+#  session_ended_message    :text
+#  webhook_url              :string           not null
+#  welcome_message          :text
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  account_id               :bigint           not null
+#  corp_id                  :string           not null
 #
 # Indexes
 #
@@ -24,7 +27,8 @@ class Channel::WecomCustomerService < ApplicationRecord
   include Channelable
 
   self.table_name = 'channel_wecom_customer_services'
-  EDITABLE_ATTRS = [:open_kfid, :secret, :webhook_url, :callback_token, :encoding_aes_key, :corp_id].freeze
+  EDITABLE_ATTRS = [:open_kfid, :secret, :webhook_url, :callback_token, :encoding_aes_key, :corp_id,
+                    :welcome_message, :session_assigned_message, :session_ended_message].freeze
 
   has_secure_token :identifier
 

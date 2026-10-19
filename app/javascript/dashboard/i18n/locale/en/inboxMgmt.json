@@ -586,6 +586,15 @@
         },
         "SECRET": {
           "LABEL": "Message reading secret"
+        },
+        "WELCOME_MESSAGE": {
+          "LABEL": "Welcome message"
+        },
+        "SESSION_ASSIGNED_MESSAGE": {
+          "LABEL": "Session assigned message"
+        },
+        "SESSION_ENDED_MESSAGE": {
+          "LABEL": "Session ended message"
         }
       }
     },
@@ -1082,6 +1091,9 @@
         "CALLBACK_TOKEN": "Callback token",
         "ENCODING_AES_KEY": "EncodingAESKey",
         "CORP_ID": "Corp ID",
+        "WELCOME_MESSAGE": "Welcome message",
+        "SESSION_ASSIGNED_MESSAGE": "Session assigned message",
+        "SESSION_ENDED_MESSAGE": "Session ended message",
         "SAVE": "Save WeChat customer service configuration",
         "SUCCESS": "WeChat customer service configuration updated",
         "ERROR": "Unable to update WeChat customer service configuration",

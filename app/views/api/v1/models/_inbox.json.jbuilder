@@ -133,6 +133,9 @@ if resource.wecom_customer_service?
   json.open_kfid resource.channel.try(:open_kfid)
   json.webhook_url resource.channel.try(:webhook_url)
   json.corp_id resource.channel.try(:corp_id)
+  json.welcome_message resource.channel.try(:welcome_message)
+  json.session_assigned_message resource.channel.try(:session_assigned_message)
+  json.session_ended_message resource.channel.try(:session_ended_message)
   if Current.account_user&.administrator?
     json.secret resource.channel.try(:secret)
     json.callback_token resource.channel.try(:callback_token)
