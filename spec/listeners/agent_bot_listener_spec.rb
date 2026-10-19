@@ -63,6 +63,21 @@ describe AgentBotListener do
         end
       end
     end
+
+    context 'when the message is an agent bot command' do
+      let!(:message) do
+        create(:message, message_type: 'outgoing', private: true, sender: agent_bot,
+                         extensions: { agent_bot_action: 'wecom_event_response' },
+                         account: account, inbox: inbox, conversation: conversation)
+      end
+
+      before { create(:agent_bot_inbox, inbox: inbox, agent_bot: agent_bot) }
+
+      it 'does not send the command back to the agent bot' do
+        expect(AgentBots::WebhookJob).not_to receive(:perform_later)
+        listener.message_created(event)
+      end
+    end
   end
 
   describe '#conversation_status_changed' do
