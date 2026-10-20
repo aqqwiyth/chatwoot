@@ -60,6 +60,8 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 - [发送消息](https://developer.work.weixin.qq.com/document/path/94677)
 - [发送欢迎语等事件响应消息](https://developer.work.weixin.qq.com/document/path/95122)
 - `kf/customer/batchget`：获取微信客服客户详情
+- `kf/servicer/list`：获取客服账号的接待状态
+- `kf/service_state/get` 和 `kf/service_state/trans`：读取并变更客户会话状态
 
 ### GET 验证
 
@@ -159,12 +161,15 @@ Agent Bot 不直接调用企业微信 API，而是通过 Messages API 创建一�
   "content_type": "text",
   "private": true,
   "extensions": {
-    "agent_bot_action": "handoff"
+    "agent_bot_action": "handoff",
+    "handoff": {
+      "event_content": "正在为您转接人工客服"
+    }
   }
 }
 ```
 
-Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，并调用 `kf/service_state/trans`。有接待中的客服时转给指定人员；没有可用客服时转入待接入队列。转接状态和客服 ID 会写回消息扩展，私有命令不会发送给客户。
+Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，并调用 `kf/service_state/trans`。有接待中的客服时以 `service_state=3` 转给指定人员；没有可用客服时以 `service_state=2` 进入待接入队列，并每 3 分钟重新查询一次坐席列表，直到有客服接待或会话结束。转接成功返回的 `msg_code` 会通过 `kf/send_msg_on_event` 发送事件话术（优先使用命令扩展中的 `handoff.event_content`，否则使用收件箱配置的接入会话话术）。转接状态、客服 ID 和 `msg_code` 会写回消息扩展，私有命令不会发送给客户。
 
 ## Chatwoot 管理员回复
 
