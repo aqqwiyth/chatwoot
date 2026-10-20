@@ -83,6 +83,8 @@ class WecomCustomerService::InboundMessageService
   end
 
   def message_type
+    return :activity if event_message?
+
     outgoing_service_message? ? :outgoing : :incoming
   end
 
@@ -91,7 +93,9 @@ class WecomCustomerService::InboundMessageService
   end
 
   def message_sender(contact_inbox)
-    outgoing_service_message? ? nil : contact_inbox.contact
+    return nil if event_message? || outgoing_service_message?
+
+    contact_inbox.contact
   end
 
   def content_attributes
@@ -100,6 +104,10 @@ class WecomCustomerService::InboundMessageService
 
   def outgoing_service_message?
     @message['origin'].to_i == 5
+  end
+
+  def event_message?
+    @message['msgtype'] == 'event'
   end
 
   def customer_details
@@ -113,9 +121,24 @@ class WecomCustomerService::InboundMessageService
     extensions = { 'provider' => 'wecom_customer_service', 'wecom' => wecom_message_extensions, 'webhook_forwarded' => false }
     extensions['wecom']['event_type'] = @message.dig('event', 'event_type') if @message['msgtype'] == 'event'
 
+    add_event_actor(extensions) if event_message?
+
     servicer_userid = @message['servicer_userid'].presence
     add_servicer_extensions(extensions, servicer_userid) if outgoing_service_message? && servicer_userid.present?
     extensions
+  end
+
+  def add_event_actor(extensions)
+    event = @message['event'].to_h
+    servicer_userid = event['servicer_userid'].presence
+    display_name = servicer_userid.present? ? "客服坐席 #{servicer_userid}" : '企业微信客服系统'
+    external_id = servicer_userid.presence || 'system'
+    extensions['actor'] = {
+      'display_name' => display_name,
+      'external_id' => external_id,
+      'identity_key' => "wecom:#{servicer_userid.presence || 'system'}"
+    }
+    extensions['wecom']['servicer_userid'] = servicer_userid if servicer_userid.present?
   end
 
   def wecom_message_extensions

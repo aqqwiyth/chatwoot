@@ -211,6 +211,10 @@ class WecomCustomerService::ApiClient
     payload = payload.deep_stringify_keys
     return payload if payload['errcode'].to_i.zero?
 
-    raise "WeCom #{operation} returned error #{payload['errcode']}: #{payload['errmsg']}"
+    raise WecomCustomerService::ApiError.new(
+      operation: operation,
+      errcode: payload['errcode'],
+      errmsg: payload['errmsg']
+    )
   end
 end

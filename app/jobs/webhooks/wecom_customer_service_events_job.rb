@@ -1,6 +1,11 @@
 # rubocop:disable Metrics/ClassLength
 class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   queue_as :default
+  SESSION_CHANGE_LABELS = {
+    1 => '接入人工客服',
+    2 => '等待接入客服',
+    3 => '结束人工接待'
+  }.freeze
 
   retry_on StandardError, wait: 10.seconds, attempts: 3
   retry_on LockAcquisitionError, wait: 2.seconds, attempts: 20
@@ -196,9 +201,18 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     return message.dig('text', 'content').to_s if message['msgtype'] == 'text'
     return message_content_for_type(message) unless message['msgtype'] == 'event'
 
-    event = message['event'].to_h
-    change = event['change_type'].present? ? " (#{event['change_type']})" : ''
-    "[事件消息] #{event['event_type']}#{change}"
+    event_content(message['event'].to_h)
+  end
+
+  def event_content(event)
+    event_type = event['event_type'].presence || 'unknown'
+    change_type = event['change_type'].presence
+    servicer_userid = event['servicer_userid'].presence
+    details = event.except('event_type').to_json
+    change_label = SESSION_CHANGE_LABELS[change_type.to_i] if change_type
+    summary = ["事件: #{event_type}", ("状态: #{change_label || change_type}" if change_type),
+               ("客服坐席: #{servicer_userid}" if servicer_userid)].compact.join(' | ')
+    [summary, details].join("\n")
   end
 
   def message_content_for_type(message)

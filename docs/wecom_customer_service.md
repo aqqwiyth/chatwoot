@@ -171,6 +171,10 @@ Agent Bot 不直接调用企业微信 API，而是通过 Messages API 创建一�
 
 Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，并调用 `kf/service_state/trans`。有接待中的客服时以 `service_state=3` 转给指定人员；没有可用客服时以 `service_state=2` 进入待接入队列，并每 3 分钟重新查询一次坐席列表，直到有客服接待或会话结束。转接成功返回的 `msg_code` 会通过 `kf/send_msg_on_event` 发送事件话术（优先使用命令扩展中的 `handoff.event_content`，否则使用收件箱配置的接入会话话术）。转接状态、客服 ID 和 `msg_code` 会写回消息扩展，私有命令不会发送给客户。
 
+如果转接时微信客服返回 `95019 servicer offline`，Chatwoot 会立即重新获取一次坐席列表并重新执行转接；再次失败会进入任务重试流程。
+
+微信客服同步的事件会以 Chatwoot activity 消息展示，使用系统或坐席身份，并保留完整事件字段，便于查看实际状态、坐席 ID 和事件码。
+
 ## Chatwoot 管理员回复
 
 管理员在 Conversation 中发送回复后，Chatwoot 的 `SendReplyJob` 会调用微信客服发送消息接口：

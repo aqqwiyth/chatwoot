@@ -50,10 +50,11 @@ class WecomCustomerService::HandoffService
     return state_result(state, QUEUED_SERVICE_STATE) if servicer_userid.blank? && current_state == QUEUED_SERVICE_STATE
 
     target_state = servicer_userid.present? ? HUMAN_SERVICE_STATE : QUEUED_SERVICE_STATE
-    response = api_client.transfer_service_state(
-      external_userid: external_userid,
-      service_state: target_state,
-      servicer_userid: servicer_userid
+    response = transfer_service_state(
+      api_client,
+      external_userid,
+      target_state,
+      servicer_userid
     )
 
     state_result(state, target_state, servicer_userid: servicer_userid, msg_code: response['msg_code'])
@@ -65,6 +66,25 @@ class WecomCustomerService::HandoffService
 
       servicer['userid'].presence
     end.first
+  end
+
+  def transfer_service_state(api_client, external_userid, service_state, servicer_userid)
+    api_client.transfer_service_state(
+      external_userid: external_userid,
+      service_state: service_state,
+      servicer_userid: servicer_userid
+    )
+  rescue WecomCustomerService::ApiError => e
+    raise unless e.servicer_offline? && service_state == HUMAN_SERVICE_STATE
+
+    refreshed_servicer_userid = active_servicer_userid(api_client.list_servicers)
+    raise if refreshed_servicer_userid.blank?
+
+    api_client.transfer_service_state(
+      external_userid: external_userid,
+      service_state: service_state,
+      servicer_userid: refreshed_servicer_userid
+    )
   end
 
   def state_result(state, service_state, servicer_userid: nil, msg_code: nil)
