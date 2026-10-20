@@ -125,6 +125,7 @@ class Messages::MessageBuilder
     value = @params[:extensions]
     return {} unless value.respond_to?(:to_h)
 
+    value = value.to_unsafe_h if value.is_a?(ActionController::Parameters)
     value.to_h.deep_stringify_keys
   end
 

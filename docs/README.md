@@ -8,6 +8,8 @@
 | --- | --- | --- |
 | [群聊渠道与 v4.17.1 发布说明](group_messaging_v4_17_1.md) | 企业微信群、飞书群、钉钉群的统一群聊渠道 | 数据模型、入站/出站协议、前端配置、开发运行、测试和发布 Runbook |
 | [微信客服渠道](wecom_customer_service.md) | 微信客服（客服账号） | 渠道配置、回调验签与解密、异步同步、机器人 Webhook、管理员回复和排障 |
+| [微信客服转人工（handoff）](wecom_customer_service_handoff.md) | 微信客服渠道的转人工 | 会话状态流转、curl payload、演示脚本和 Chatwoot 侧联动 |
+| [AgentBot 转人工报文](agent_bot_handoff.md) | 挂了 AgentBot 的收件箱（含微信客服） | AgentBot 通过 Messages API 发送私有 handoff 命令的报文、`extensions.handoff` 状态和无该逻辑时的 `toggle_status` 兜底 |
 
 ## 名称边界
 
