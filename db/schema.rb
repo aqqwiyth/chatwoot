@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_19_000000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_22_000002) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -757,6 +757,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_19_000000) do
     t.text "welcome_message"
     t.text "session_assigned_message"
     t.text "session_ended_message"
+    t.boolean "bot_fallback_enabled", default: false, null: false
+    t.integer "bot_fallback_timeout_seconds", default: 30, null: false
+    t.string "bot_fallback_target", default: "wecom_platform", null: false
     t.index ["account_id"], name: "index_channel_wecom_customer_services_on_account_id"
     t.index ["identifier"], name: "index_channel_wecom_customer_services_on_identifier", unique: true
   end
@@ -1610,6 +1613,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_19_000000) do
     t.index ["account_id", "url"], name: "index_webhooks_on_account_id_and_url", unique: true
   end
 
+  create_table "wecom_customer_service_platform_sessions", force: :cascade do |t|
+    t.bigint "channel_id", null: false
+    t.string "external_userid", null: false
+    t.integer "service_state"
+    t.string "servicer_userid"
+    t.string "source", default: "unknown", null: false
+    t.datetime "observed_at"
+    t.datetime "next_refresh_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel_id", "external_userid"], name: "index_wecom_platform_sessions_on_channel_and_user", unique: true
+    t.index ["channel_id"], name: "index_wecom_customer_service_platform_sessions_on_channel_id"
+    t.index ["next_refresh_at"], name: "index_wecom_platform_sessions_on_next_refresh"
+  end
+
   create_table "working_hours", force: :cascade do |t|
     t.bigint "inbox_id"
     t.bigint "account_id"
@@ -1626,6 +1644,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_19_000000) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "wecom_customer_service_platform_sessions", "channel_wecom_customer_services", column: "channel_id", on_delete: :cascade
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaign_recipients", "accounts", on_delete: :cascade

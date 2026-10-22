@@ -16,6 +16,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'next/textarea/TextArea.vue';
 import { sanitizeAllowedDomains } from 'dashboard/helper/URLHelper';
 import WhatsappBusinessManagementToken from './WhatsappBusinessManagementToken.vue';
+import WecomBotFallbackSettings from './WecomBotFallbackSettings.vue';
 
 export default {
   components: {
@@ -27,6 +28,7 @@ export default {
     NextButton,
     TextArea,
     WhatsappBusinessManagementToken,
+    WecomBotFallbackSettings,
   },
   mixins: [inboxMixin],
   props: {
@@ -597,6 +599,7 @@ export default {
     </SettingsFieldSection>
   </div>
   <div v-else-if="isWecomCustomerService">
+    <WecomBotFallbackSettings :inbox="inbox" />
     <SettingsFieldSection
       :label="$t(
         'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_URL'

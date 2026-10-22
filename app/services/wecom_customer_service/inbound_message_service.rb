@@ -7,6 +7,9 @@ class WecomCustomerService::InboundMessageService
   end
 
   def perform
+    if external_userid.present?
+      WecomCustomerService::PlatformSessionService.new(channel: @channel, external_userid: external_userid).observe_message(@message)
+    end
     existing_message || create_message
   end
 

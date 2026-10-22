@@ -1,6 +1,7 @@
 # rubocop:disable Metrics/ClassLength
 class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   queue_as :default
+  MAX_MESSAGE_AGE = 3.minutes
   SESSION_CHANGE_LABELS = {
     1 => '接入人工客服',
     2 => '等待接入客服',
@@ -48,6 +49,8 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   end
 
   def process_message(channel, message)
+    return if message.fetch('send_time').to_i < MAX_MESSAGE_AGE.ago.to_i
+
     content = message_content(message)
     media_file = download_media(channel, message)
     stored_message = WecomCustomerService::InboundMessageService.new(
@@ -93,7 +96,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     return if code.blank? || content.blank?
 
     extensions = stored_message.extensions.to_h.deep_stringify_keys
-    return if extensions.dig('wecom', 'event_response_sent') == true
+    return if extensions.dig('wecom', 'event_response_sent') == true || extensions.dig('wecom', 'event_response_error').present?
 
     WecomCustomerService::ApiClient.new(channel: channel).send_event_response(
       code: code,
@@ -102,6 +105,19 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     )
     extensions['wecom'] = extensions.fetch('wecom', {}).merge('event_response_sent' => true)
     stored_message.update!(extensions: extensions)
+  rescue StandardError => e
+    record_event_response_failure(stored_message, e)
+  end
+
+  def record_event_response_failure(message, error)
+    Rails.logger.warn "WeCom fixed event response failed for message=#{message.id}: #{error.class}: #{error.message}"
+    extensions = message.extensions.to_h.deep_stringify_keys
+    extensions['wecom'] = extensions.fetch('wecom', {}).merge('event_response_error' => error.message)
+    message.update!(
+      extensions: extensions,
+      external_error: error.message,
+      content: "#{message.content}\n#{error.message}"
+    )
   end
 
   def fixed_event_response(channel, event)
@@ -152,7 +168,8 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       event: 'wecom_sync_message',
       origin: message['origin'].to_i,
       content: content,
-      raw_message: message
+      raw_message: message,
+      platform_session: platform_session_payload(channel, message)
     }
   end
 
@@ -183,6 +200,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
         origin: message['origin'].to_i,
         content: content,
         raw_message: message,
+        platform_session: platform_session_payload(channel, message),
         inbox: inbox.webhook_data,
         account: inbox.account.webhook_data
       },
@@ -190,6 +208,13 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       secret: agent_bot.secret,
       delivery_id: delivery_id(channel, message)
     )
+  end
+
+  def platform_session_payload(channel, message)
+    external_userid = message['external_userid'].presence || message.dig('event', 'external_userid').presence
+    return nil if external_userid.blank?
+
+    WecomCustomerService::PlatformSessionService.new(channel: channel, external_userid: external_userid).payload
   end
 
   def delivery_id(channel, message)

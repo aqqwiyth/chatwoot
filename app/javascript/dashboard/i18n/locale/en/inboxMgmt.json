@@ -1097,7 +1097,20 @@
         "SAVE": "Save WeChat customer service configuration",
         "SUCCESS": "WeChat customer service configuration updated",
         "ERROR": "Unable to update WeChat customer service configuration",
-        "CALLBACK_URL": "Callback URL"
+        "CALLBACK_URL": "Callback URL",
+        "BOT_FALLBACK": {
+          "TITLE": "Bot fallback",
+          "DESCRIPTION": "Choose where to transfer a conversation when the bot does not respond within the timeout.",
+          "ENABLE": "Enable bot fallback",
+          "BOT_NOTICE": "Requires an enabled inbox bot. Before enabling fallback, configure the bot to return the delivery token with each reply so successful replies cancel the timeout.",
+          "TIMEOUT": "Response timeout in seconds (1–3600)",
+          "TARGET": "Fallback target",
+          "WECOM_PLATFORM": "WeChat customer service platform",
+          "CHATWOOT": "Inbox agents",
+          "SAVE": "Save bot fallback settings",
+          "SUCCESS": "Bot fallback settings updated",
+          "ERROR": "Unable to update bot fallback settings"
+        }
       }
     },
     "HELP_CENTER": {

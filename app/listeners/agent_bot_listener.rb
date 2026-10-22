@@ -3,7 +3,7 @@ class AgentBotListener < BaseListener
     conversation = extract_conversation_and_account(event)[0]
     inbox = conversation.inbox
     event_name = __method__.to_s
-    payload = conversation.webhook_data.merge(event: event_name)
+    payload = conversation.webhook_data.merge(event: event_name).merge(platform_session_payload(conversation))
     agent_bots_for(inbox, conversation).each { |agent_bot| process_webhook_bot_event(agent_bot, payload) }
   end
 
@@ -11,7 +11,7 @@ class AgentBotListener < BaseListener
     conversation = extract_conversation_and_account(event)[0]
     inbox = conversation.inbox
     event_name = __method__.to_s
-    payload = conversation.webhook_data.merge(event: event_name)
+    payload = conversation.webhook_data.merge(event: event_name).merge(platform_session_payload(conversation))
     agent_bots_for(inbox, conversation).each { |agent_bot| process_webhook_bot_event(agent_bot, payload) }
   end
 
@@ -20,7 +20,7 @@ class AgentBotListener < BaseListener
     changed_attributes = extract_changed_attributes(event)
     inbox = conversation.inbox
     event_name = __method__.to_s
-    payload = conversation.webhook_data.merge(event: event_name, changed_attributes: changed_attributes)
+    payload = conversation.webhook_data.merge(event: event_name, changed_attributes: changed_attributes).merge(platform_session_payload(conversation))
     agent_bots_for(inbox, conversation).each { |agent_bot| process_webhook_bot_event(agent_bot, payload) }
   end
 
@@ -29,14 +29,14 @@ class AgentBotListener < BaseListener
     changed_attributes = extract_changed_attributes(event)
     inbox = conversation.inbox
     event_name = __method__.to_s
-    payload = conversation.webhook_data.merge(event: event_name, changed_attributes: changed_attributes)
+    payload = conversation.webhook_data.merge(event: event_name, changed_attributes: changed_attributes).merge(platform_session_payload(conversation))
     agent_bots_for(inbox, conversation).each { |agent_bot| process_webhook_bot_event(agent_bot, payload) }
   end
 
   def message_created(event)
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
-    return unless message.webhook_sendable?
+    return unless message.webhook_sendable? || wecom_activity?(message)
     return if agent_bot_command?(message)
 
     method_name = __method__.to_s
@@ -46,8 +46,10 @@ class AgentBotListener < BaseListener
   def message_updated(event)
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
-    return unless message.webhook_sendable?
+    return unless message.webhook_sendable? || wecom_activity?(message)
     return if agent_bot_command?(message)
+
+    return if wecom_activity?(message)
 
     method_name = __method__.to_s
     agent_bots_for(inbox, message.conversation).each { |agent_bot| process_message_event(method_name, agent_bot, message, event) }
@@ -80,7 +82,7 @@ class AgentBotListener < BaseListener
 
   def process_message_event(method_name, agent_bot, message, _event)
     # Only webhook bots are supported
-    payload = message.webhook_data.merge(event: method_name)
+    payload = message.webhook_data.merge(event: wecom_activity?(message) ? 'wecom_sync_message' : method_name)
     wecom = message.extensions.to_h['wecom'].to_h
     if wecom['raw_message'].present?
       payload = payload.merge(
@@ -90,7 +92,25 @@ class AgentBotListener < BaseListener
         raw_message: wecom['raw_message']
       )
     end
+    payload.merge!(platform_session_payload(message.conversation))
+    if method_name == 'message_created'
+      token = WecomCustomerService::BotFallbackService.track(message, agent_bot)
+      payload[:wecom_bot_fallback] = { token: token, bot_id: agent_bot.id } if token
+    end
     process_webhook_bot_event(agent_bot, payload)
+  end
+
+  def wecom_activity?(message)
+    message.inbox.wecom_customer_service? && message.activity? && message.extensions.to_h.dig('wecom', 'raw_message').present?
+  end
+
+  def platform_session_payload(conversation)
+    return {} unless conversation.inbox.wecom_customer_service?
+
+    service = WecomCustomerService::PlatformSessionService.new(
+      channel: conversation.inbox.channel, external_userid: conversation.contact_inbox.source_id
+    )
+    { platform_session: service.payload }
   end
 
   def process_webhook_bot_event(agent_bot, payload)

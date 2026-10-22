@@ -28,7 +28,8 @@ class Channel::WecomCustomerService < ApplicationRecord
 
   self.table_name = 'channel_wecom_customer_services'
   EDITABLE_ATTRS = [:open_kfid, :secret, :webhook_url, :callback_token, :encoding_aes_key, :corp_id,
-                    :welcome_message, :session_assigned_message, :session_ended_message].freeze
+                    :welcome_message, :session_assigned_message, :session_ended_message,
+                    :bot_fallback_enabled, :bot_fallback_timeout_seconds, :bot_fallback_target].freeze
 
   has_secure_token :identifier
 
@@ -41,6 +42,9 @@ class Channel::WecomCustomerService < ApplicationRecord
     encrypts :encoding_aes_key
   end
 
+  validates :bot_fallback_enabled, inclusion: { in: [true, false] }
+  validates :bot_fallback_timeout_seconds, numericality: { only_integer: true, in: 1..3600 }
+  validates :bot_fallback_target, inclusion: { in: %w[wecom_platform chatwoot] }
   validates :identifier, uniqueness: true
   validates :webhook_url,
             presence: true,

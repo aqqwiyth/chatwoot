@@ -4,9 +4,9 @@ class WecomCustomerService::HandoffService
   HUMAN_SERVICE_STATE = 3
   SERVICER_POLL_INTERVAL = 3.minutes
 
-  def initialize(message:)
+  def initialize(message: nil, conversation: nil)
     @message = message
-    @conversation = message.conversation
+    @conversation = conversation || message.conversation
     @channel = @conversation.inbox.channel
   end
 
@@ -19,6 +19,9 @@ class WecomCustomerService::HandoffService
     transition_conversation_to_human
     state = api_client.get_service_state(external_userid: external_userid)
     result = transfer_if_needed(api_client, external_userid, state)
+    WecomCustomerService::PlatformSessionService.new(channel: @channel, external_userid: external_userid).write(
+      service_state: result.fetch(:service_state), servicer_userid: result[:servicer_userid], source: 'handoff'
+    )
     status = result.delete(:handoff_status) || 'transferred'
     update_handoff(status: status, **result)
     send_event_response(api_client, result)
@@ -34,10 +37,11 @@ class WecomCustomerService::HandoffService
   end
 
   def transition_conversation_to_human
-    @conversation.with_lock do
-      return if @conversation.assignee_agent_bot_id.blank?
+    return unless @message
 
-      @conversation.bot_handoff!
+    WecomCustomerService::BotFallbackService.stop(@conversation)
+    @conversation.with_lock do
+      @conversation.bot_handoff! if @conversation.pending? || @conversation.assignee_agent_bot_id.present?
     end
   end
 
@@ -106,6 +110,8 @@ class WecomCustomerService::HandoffService
   end
 
   def send_pending_event_response(api_client)
+    return unless @message
+
     handoff = @message.extensions.to_h.deep_stringify_keys.fetch('handoff', {})
     return if handoff['event_response_sent'] == true || handoff['msg_code'].blank?
 
@@ -116,14 +122,32 @@ class WecomCustomerService::HandoffService
     msg_code = result[:msg_code] || result['msg_code']
     return if msg_code.blank?
 
-    handoff = @message.extensions.to_h.deep_stringify_keys.fetch('handoff', {})
-    return if handoff['event_response_sent'] == true
+    handoff = @message&.extensions.to_h.deep_stringify_keys.fetch('handoff', {})
+    return if handoff['event_response_sent'] == true || handoff['event_response_error'].present?
 
     content = handoff['event_content'].presence || @channel.try(:session_assigned_message).presence
     return if content.blank?
 
     api_client.send_event_response(code: msg_code, content: content, msgid: event_response_message_id)
-    update_handoff_event_response_sent
+    update_handoff_event_response_sent if @message
+  rescue StandardError => e
+    record_handoff_event_response_failure(e)
+  end
+
+  def record_handoff_event_response_failure(error)
+    Rails.logger.warn "WeCom handoff event response failed for conversation=#{@conversation.id} message=#{@message&.id}: " \
+                      "#{error.class}: #{error.message}"
+    if @message
+      extensions = @message.extensions.to_h.deep_stringify_keys
+      handoff = extensions.fetch('handoff', {}).merge('event_response_error' => error.message)
+      @message.update!(extensions: extensions.merge('handoff' => handoff), external_error: error.message)
+    else
+      @conversation.with_lock do
+        extensions = @conversation.extensions.to_h
+        fallback = extensions.fetch('wecom_bot_fallback', {}).merge('event_response_error' => error.message)
+        @conversation.update!(extensions: extensions.merge('wecom_bot_fallback' => fallback))
+      end
+    end
   end
 
   def update_handoff_event_response_sent
@@ -133,10 +157,13 @@ class WecomCustomerService::HandoffService
   end
 
   def event_response_message_id
-    "cw_#{Digest::SHA256.hexdigest(@message.id.to_s)[0, 24]}"
+    identity = @message ? @message.id.to_s : "fallback:#{@conversation.id}:#{@conversation.extensions.dig('wecom_bot_fallback', 'token')}"
+    "cw_#{Digest::SHA256.hexdigest(identity)[0, 24]}"
   end
 
   def update_handoff(status:, service_state:, servicer_userid: nil, msg_code: nil, error: nil)
+    return unless @message
+
     extensions = @message.extensions.to_h.deep_stringify_keys
     handoff = extensions.fetch('handoff', {})
     updates = {

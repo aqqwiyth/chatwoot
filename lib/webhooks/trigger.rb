@@ -75,6 +75,11 @@ class Webhooks::Trigger
   end
 
   def update_conversation_status(message)
+    context = @payload[:wecom_bot_fallback] || @payload['wecom_bot_fallback']
+    return if WecomCustomerService::BotFallbackService.delivery_failed(message, context)
+    # Opted-in WeCom channels only hand off tracked customer deliveries.
+    return if message.inbox.wecom_customer_service? && message.inbox.channel.bot_fallback_enabled?
+
     conversation = message.conversation
     return unless conversation&.pending?
     return if conversation&.account&.keep_pending_on_bot_failure

@@ -136,6 +136,9 @@ if resource.wecom_customer_service?
   json.welcome_message resource.channel.try(:welcome_message)
   json.session_assigned_message resource.channel.try(:session_assigned_message)
   json.session_ended_message resource.channel.try(:session_ended_message)
+  json.bot_fallback_enabled resource.channel.bot_fallback_enabled
+  json.bot_fallback_timeout_seconds resource.channel.bot_fallback_timeout_seconds
+  json.bot_fallback_target resource.channel.bot_fallback_target
   if Current.account_user&.administrator?
     json.secret resource.channel.try(:secret)
     json.callback_token resource.channel.try(:callback_token)
