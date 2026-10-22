@@ -117,13 +117,18 @@ class WecomCustomerService::HandoffService
     return if msg_code.blank?
 
     handoff = @message.extensions.to_h.deep_stringify_keys.fetch('handoff', {})
-    return if handoff['event_response_sent'] == true
+    return if handoff['event_response_sent'] == true || handoff['event_response_error'].present?
 
     content = handoff['event_content'].presence || @channel.try(:session_assigned_message).presence
     return if content.blank?
 
     api_client.send_event_response(code: msg_code, content: content, msgid: event_response_message_id)
     update_handoff_event_response_sent
+  rescue StandardError => e
+    Rails.logger.warn "WeCom handoff event response failed for message=#{@message.id}: #{e.class}: #{e.message}"
+    extensions = @message.extensions.to_h.deep_stringify_keys
+    handoff = extensions.fetch('handoff', {}).merge('event_response_error' => e.message)
+    @message.update!(extensions: extensions.merge('handoff' => handoff), external_error: e.message)
   end
 
   def update_handoff_event_response_sent

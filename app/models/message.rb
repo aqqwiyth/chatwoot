@@ -68,7 +68,7 @@ class Message < ApplicationRecord
   }.to_json.freeze
 
   before_validation :ensure_content_type
-  before_validation :prevent_message_flooding
+  before_validation :prevent_message_flooding, on: :create
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
 

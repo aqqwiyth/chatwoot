@@ -88,7 +88,7 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 
 ## 消息同步和 Chatwoot 展示
 
-Sidekiq 任务使用微信客服接口读取消息，并处理所有同步条目：
+Sidekiq 任务使用微信客服接口读取消息。处理时距离 `send_time` 超过 3 分钟的消息和事件直接跳过，不入库、不转发、不发送事件话术，但仍推进同步游标。时间窗口内的条目按以下方式处理：
 
 ```text
 origin = 3  客户消息，创建入站消息并转发
@@ -108,7 +108,9 @@ origin = 4  系统事件，按事件是否带客户 ID 创建消息并转发
 
 每条同步条目都会向机器人 Webhook 增加 `origin`、`content` 和 `raw_message` 字段，同时保留原有 `msgtype=text` 和 `text.content` 格式。没有 `event.external_userid` 的事件不会创建 Chatwoot 会话，但会直接投递给收件箱 Agent Bot。
 
-对于 `enter_session` 和 `session_status_change` 事件，配置的固定话术会立即通过 `kf/send_msg_on_event` 发送。Agent Bot 也可以创建私有文本命令触发同一接口：
+对于 `enter_session` 和 `session_status_change` 事件，配置的固定话术会立即通过 `kf/send_msg_on_event` 发送。发送失败时，在对应 activity 事件内容及 `external_error` 中保存错误，并记录 `extensions.wecom.event_response_error`；不自动重发，也不打断本批后续消息处理或游标推进。消息入库、媒体下载和机器人 Webhook 的失败仍按原有机制重试。
+
+Agent Bot 也可以创建私有文本命令触发同一接口。该命令发送成功后标记为 `delivered`；失败后标记为 `failed`，并通过现有消息错误提示展示原始错误，不自动重试。前端手动重试会重新进入事件回复任务：
 
 ```json
 {
@@ -173,6 +175,8 @@ Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，�
 
 如果转接时微信客服返回 `95019 servicer offline`，Chatwoot 会立即重新获取一次坐席列表并重新执行转接；再次失败会进入任务重试流程。
 
+转接后的事件话术发送失败会单独记录到 `extensions.handoff.event_response_error` 和消息的 `external_error`，在前端显示失败原因，并停止重发该话术。已成功的转接和原有等待坐席的轮询不受话术发送失败影响。
+
 微信客服同步的事件会以 Chatwoot activity 消息展示，使用系统或坐席身份，并保留完整事件字段，便于查看实际状态、坐席 ID 和事件码。
 
 ## Chatwoot 管理员回复
@@ -192,7 +196,13 @@ Chatwoot 异步读取该命令，使用微信客服凭证获取接待人员，�
 
 发送目标使用当前 Conversation 的 Contact Inbox `source_id`，即微信客服的 `external_userid`。
 
-微信客服对消息发送有时间窗口、条数和客服账号 API 权限限制。如果微信客服 API 返回错误，Chatwoot 会查询当前会话状态，将原始错误和 `service_state` 写入消息失败原因，并在 Conversation 前端展示。只有 `service_state=0`（未处理）和 `1`（机器人接待中）可以通过 API 回复；`3` 表示当前由人工客服接待。
+微信客服对消息发送有时间窗口、条数和客服账号 API 权限限制。文本、附件上传或发送失败（包括 API 拒绝、HTTP 错误及超时）时，Chatwoot 将当前消息标记为 `failed`，把原始错误保存到 `external_error`，通过现有消息更新事件推送给前端，显示“发送失败”和错误详情。发送全部成功后标记为 `delivered`。
+
+消息频率限制只在创建新消息时校验，不阻止已有消息更新发送状态或失败原因。
+
+失败的发送不自动重试，也不阻止其他消息发送；已经标记失败的任务再次执行时会跳过。用户可以在前端手动重试普通回复，重试前会清除失败状态。文本和附件组合消息若已部分发送成功，手动重试仍会重发整条消息，可能重复已成功发送的部分；超时也可能发生在微信已接收消息之后。
+
+`95018 send msg session status invalid` 表示发送时会话状态不允许该次发送，并不单独证明所有消息都只有 20 秒有效。本地不额外设置统一的 20 秒发送窗口，以微信客服具体接口的返回为准。只有 `service_state=0`（未处理）和 `1`（机器人接待中）可以通过普通消息 API 回复；`3` 表示当前由人工客服接待。
 
 ## 本地测试
 

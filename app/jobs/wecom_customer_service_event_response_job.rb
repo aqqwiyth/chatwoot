@@ -1,14 +1,13 @@
 class WecomCustomerServiceEventResponseJob < ApplicationJob
   queue_as :high
 
-  retry_on StandardError, wait: 10.seconds, attempts: 3
-
   def perform(message_id)
     message = Message.find(message_id)
     return unless response_message?(message)
 
     response = message.extensions.to_h.deep_stringify_keys.fetch('wecom_event_response')
-    return if response['sent'] == true
+    return Messages::StatusUpdateService.new(message, 'delivered').perform if response['sent'] == true
+    return if message.failed?
 
     channel = message.inbox.channel
     WecomCustomerService::ApiClient.new(channel: channel).send_event_response(
@@ -17,6 +16,11 @@ class WecomCustomerServiceEventResponseJob < ApplicationJob
       msgid: response['msgid']
     )
     mark_sent(message)
+  rescue StandardError => e
+    raise if message.blank?
+
+    Rails.logger.warn "WeCom event response failed for message=#{message.id}: #{e.class}: #{e.message}"
+    Messages::StatusUpdateService.new(message, 'failed', e.message).perform
   end
 
   private
@@ -29,6 +33,10 @@ class WecomCustomerServiceEventResponseJob < ApplicationJob
   def mark_sent(message)
     extensions = message.extensions.to_h.deep_stringify_keys
     response = extensions.fetch('wecom_event_response')
-    message.update!(extensions: extensions.merge('wecom_event_response' => response.merge('sent' => true)))
+    message.update!(
+      extensions: extensions.merge('wecom_event_response' => response.merge('sent' => true)),
+      status: 'delivered',
+      external_error: nil
+    )
   end
 end

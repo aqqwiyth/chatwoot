@@ -30,7 +30,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   def retry
     return if message.blank?
 
-    ::SendReplyJob.perform_later(message.id) if claim_message_retry
+    retry_job_class.perform_later(message.id) if claim_message_retry
   rescue StandardError => e
     render_could_not_create_error(e.message)
   end
@@ -83,6 +83,15 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def message_finder
     @message_finder ||= MessageFinder.new(@conversation, params)
+  end
+
+  def retry_job_class
+    if @conversation.inbox.wecom_customer_service? && message.private? &&
+       message.extensions.to_h['agent_bot_action'] == 'wecom_event_response'
+      return ::WecomCustomerServiceEventResponseJob
+    end
+
+    ::SendReplyJob
   end
 
   def claim_message_retry

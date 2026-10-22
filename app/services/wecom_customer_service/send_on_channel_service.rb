@@ -13,6 +13,14 @@ class WecomCustomerService::SendOnChannelService < Base::SendOnChannelService
     message.attachments.each do |attachment|
       send_attachment(api_client, external_userid, attachment)
     end
+    Messages::StatusUpdateService.new(message, 'delivered').perform
+  rescue StandardError => e
+    Rails.logger.warn "WeCom reply failed for message=#{message.id}: #{e.class}: #{e.message}"
+    Messages::StatusUpdateService.new(message, 'failed', e.message).perform
+  end
+
+  def invalid_message?
+    super || message.failed?
   end
 
   def send_text(api_client, external_userid)
