@@ -88,7 +88,9 @@ https://<public-domain>/webhooks/wecom_customer_service/<inbox-identifier>
 
 ## 消息同步和 Chatwoot 展示
 
-Sidekiq 任务使用微信客服接口读取消息，并处理所有同步条目：
+Sidekiq 任务使用微信客服接口读取消息，先按 `send_time` 过滤：处理时距离发送时间超过 3 分钟的消息和事件直接跳过，不下载媒体、不写入 Chatwoot、不转发 Webhook 或 Agent Bot，也不发送固定事件话术。恰好 3 分钟的条目仍可处理。过滤后仍正常推进同步游标，避免重复拉取历史消息。任务积压或失败重试后超过该时间窗口的条目也会跳过。
+
+时间窗口内的同步条目按以下方式处理：
 
 ```text
 origin = 3  客户消息，创建入站消息并转发
@@ -106,7 +108,13 @@ origin = 4  系统事件，按事件是否带客户 ID 创建消息并转发
 5. 使用微信客服 `msgid` 做幂等判断，避免重复创建消息。
 6. 更新微信客服同步游标。
 
-每条同步条目都会向机器人 Webhook 增加 `origin`、`content` 和 `raw_message` 字段，同时保留原有 `msgtype=text` 和 `text.content` 格式。没有 `event.external_userid` 的事件不会创建 Chatwoot 会话，但会直接投递给收件箱 Agent Bot。
+Chatwoot 消息的 `created_at` 使用微信客服 `send_time` 的原始发送时间。
+
+只有修改 `corp_id` 或 `open_kfid` 才会清空同步游标；修改 Secret、回调 Token、EncodingAESKey、Webhook 或固定话术不会重置游标。游标重置不会删除已有消息及其去重标记：同一收件箱按 `external_event_id = wecom_customer_service:<open_kfid>:<msgid>` 查找已有消息，数据库通过 `(inbox_id, external_event_id)` 唯一索引防止重复入库。缺少 `msgid` 时使用原始消息 JSON 的 SHA256 前 24 位作为消息 ID。该去重范围是当前收件箱，不覆盖删除后重建或其他收件箱。
+
+已关联到 Chatwoot 消息的条目在 Webhook 成功后保存 `webhook_forwarded` 标记，重复同步时跳过再次转发；固定事件话术使用 `event_response_sent` 标记避免成功后的重复发送。没有客户 ID、未入库的事件没有持久化转发标记。Webhook 成功但写入标记前任务中断时仍可能重复投递，下游可使用稳定的 `X-Chatwoot-Delivery` 请求头去重。
+
+每条通过时间过滤的同步条目都会向机器人 Webhook 增加 `origin`、`content` 和 `raw_message` 字段，同时保留原有 `msgtype=text` 和 `text.content` 格式。没有 `event.external_userid` 的事件不会创建 Chatwoot 会话，但会直接投递给收件箱 Agent Bot。
 
 对于 `enter_session` 和 `session_status_change` 事件，配置的固定话术会立即通过 `kf/send_msg_on_event` 发送。Agent Bot 也可以创建私有文本命令触发同一接口：
 
@@ -261,4 +269,4 @@ docker-compose -p chatwoot-preview \
 
 ### 旧消息没有出现在 Chatwoot
 
-只有消息同步任务在本特性代码下成功执行后，才会创建 Chatwoot 消息。请重新发送一条客户消息或重新执行一次微信客服回调。
+同步任务会跳过发送时间距离处理时超过 3 分钟的消息和事件，即使重置游标或重新执行回调也不会补录这些历史消息。请发送一条新的客户消息，并确认 Sidekiq 能在时间窗口内完成处理。

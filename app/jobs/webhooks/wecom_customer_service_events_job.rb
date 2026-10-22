@@ -1,6 +1,7 @@
 # rubocop:disable Metrics/ClassLength
 class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   queue_as :default
+  MAX_MESSAGE_AGE = 3.minutes
   SESSION_CHANGE_LABELS = {
     1 => '接入人工客服',
     2 => '等待接入客服',
@@ -48,6 +49,8 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   end
 
   def process_message(channel, message)
+    return if message.fetch('send_time').to_i < MAX_MESSAGE_AGE.ago.to_i
+
     content = message_content(message)
     media_file = download_media(channel, message)
     stored_message = WecomCustomerService::InboundMessageService.new(
