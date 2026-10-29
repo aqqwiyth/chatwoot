@@ -1,6 +1,6 @@
 class WecomCustomerService::PlatformSessionService
   REFRESH_INTERVAL = 10.minutes
-  SESSION_CHANGE_STATES = { 1 => 3, 2 => 2, 3 => 4 }.freeze
+  SESSION_CHANGE_STATES = { 1 => 3, 2 => 2, 3 => 4, 4 => 3 }.freeze
   UNCHECKED_OBSERVATION = Object.new.freeze
 
   def initialize(channel:, external_userid:)
