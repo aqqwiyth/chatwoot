@@ -5,8 +5,11 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   SESSION_CHANGE_LABELS = {
     1 => '接入人工客服',
     2 => '等待接入客服',
-    3 => '结束人工接待'
+    3 => '结束人工接待',
+    4 => '重新接入会话'
   }.freeze
+  SESSION_STATUS_CHANGE_EVENT = 'session_status_change'
+  SESSION_ENDED_CHANGE_TYPE = 3
 
   retry_on StandardError, wait: 10.seconds, attempts: 3
   retry_on LockAcquisitionError, wait: 2.seconds, attempts: 20
@@ -59,9 +62,12 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       content: content,
       media_file: media_file
     ).perform
-    return send_fixed_event_response(channel, message, stored_message) if webhook_forwarded?(stored_message)
-
-    forward_and_record(channel, message, content, stored_message)
+    if webhook_forwarded?(stored_message)
+      send_fixed_event_response(channel, message, stored_message)
+    else
+      forward_and_record(channel, message, content, stored_message)
+    end
+    close_ended_session_conversation(stored_message, message)
   rescue StandardError => e
     Rails.logger.error(
       '[Webhooks::WecomCustomerServiceEventsJob] Message forwarding failed for ' \
@@ -78,6 +84,20 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     return send_fixed_event_response(channel, message, stored_message) if stored_message
 
     forward_unassociated_event_to_agent_bot(channel, message, content) if message['msgtype'] == 'event'
+  end
+
+  # change_type=3 means the WeCom session ended. The event is recorded and the configured ended
+  # message is sent first, then the conversation holding it is resolved so that later messages from
+  # the same customer start a new Chatwoot conversation.
+  def close_ended_session_conversation(stored_message, message)
+    return if stored_message.blank? || message['msgtype'] != 'event'
+
+    event = message['event'].to_h
+    return unless event['event_type'] == SESSION_STATUS_CHANGE_EVENT
+    return unless event['change_type'].to_i == SESSION_ENDED_CHANGE_TYPE
+
+    conversation = stored_message.conversation
+    conversation.resolved! unless conversation.resolved?
   end
 
   def webhook_forwarded?(message)
@@ -124,7 +144,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     case event['event_type']
     when 'enter_session'
       [event['welcome_code'], channel.welcome_message]
-    when 'session_status_change'
+    when SESSION_STATUS_CHANGE_EVENT
       content = case event['change_type'].to_i
                 when 1 then channel.session_assigned_message
                 when 3 then channel.session_ended_message

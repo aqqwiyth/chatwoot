@@ -131,6 +131,12 @@ wecom:<corp_id>:<external_userid>
 
 如果消息类型暂时没有对应的 Chatwoot 附件处理，消息正文会显示为类型占位文本，例如 `[图片消息]` 或 `[语音消息]`。
 
+### 结束会话时关闭 Chatwoot 会话
+
+`session_status_change` 事件的 `change_type=3` 表示平台会话结束。此时 Chatwoot 会先记录并转发该事件消息、按“结束会话话术”发送事件响应消息，再把事件所属的 Chatwoot 会话标记为已解决（`resolved`）。之后同一客户的新消息会创建新的 Chatwoot 会话。
+
+`change_type=1` 仍然只负责按“接入会话话术”发送事件响应消息；`change_type=4`（重新接入已结束或已转接会话）只记录并转发事件消息，不改变 Chatwoot 会话状态。
+
 ## 机器人 Webhook
 
 客户消息写入 Chatwoot 后，还会发送到配置的 Webhook 地址。当前发送格式保持企业微信群机器人兼容格式；这里的下游机器人属于企业微信群机器人，当前渠道本身仍然是微信客服：
