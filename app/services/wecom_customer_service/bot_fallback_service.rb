@@ -1,23 +1,47 @@
 class WecomCustomerService::BotFallbackService
   KEY = 'wecom_bot_fallback'.freeze
   POLL_INTERVAL = 3.minutes
+  PLATFORM_REPLY_STATES = [0, 1].freeze
+
+  def self.platform_service_state(conversation)
+    WecomCustomerService::PlatformSession.find_by(
+      channel_id: conversation.inbox.channel.id, external_userid: conversation.contact_inbox.source_id
+    )&.service_state
+  end
+
+  def self.platform_reply_allowed?(conversation)
+    PLATFORM_REPLY_STATES.include?(platform_service_state(conversation))
+  end
+
+  def self.cancel_waiting(conversation)
+    if [2, 3, 4].include?(platform_service_state(conversation))
+      stop(conversation)
+    else
+      state = conversation.extensions.to_h.fetch(KEY, {})
+      write(conversation, state.merge('status' => 'cancelled')) if state['status'] == 'waiting'
+    end
+  end
 
   def self.track(message, agent_bot)
     conversation = message.conversation
     return unless message.inbox.wecom_customer_service? && message.incoming? && !message.private?
     return if message.created_at < 5.minutes.ago
 
+    # A conversation created by this job still carries the DB trigger synced display_id as an
+    # unsaved change, and with_lock refuses records with unsaved changes.
+    conversation.reload if conversation.changed?
     conversation.with_lock do
       channel = message.inbox.channel.reload
-      return unless channel.bot_fallback_enabled? && current_bot_id(message.inbox) == agent_bot.id && conversation.pending?
+      return unless channel.bot_fallback_enabled? && current_bot_id(message.inbox) == agent_bot.id
 
-      platform_session = WecomCustomerService::PlatformSession.find_by(
-        channel_id: channel.id, external_userid: conversation.contact_inbox.source_id
-      )
-      if [2, 3].include?(platform_session&.service_state)
-        stop(conversation)
+      # Delivery never waits for a synchronous API lookup. Only a confirmed human/ended state stops
+      # reception here; an unknown state (new session whose platform refresh has not landed yet)
+      # still arms the deadline, which the job re-checks against the state at that time.
+      if platform_service_state(conversation).in?([2, 3, 4])
+        cancel_waiting(conversation)
         return
       end
+      return unless conversation.pending?
 
       state = conversation.extensions.to_h.fetch(KEY, {})
       return if state['message_id'].to_i >= message.id
@@ -67,6 +91,7 @@ class WecomCustomerService::BotFallbackService
   end
 
   def self.reply_allowed?(message)
+    return false unless platform_reply_allowed?(message.conversation)
     return true unless message.sender_type == 'AgentBot'
 
     state = message.conversation.reload.extensions.to_h.fetch(KEY, {})
@@ -102,6 +127,11 @@ class WecomCustomerService::BotFallbackService
     context = context.to_h.stringify_keys
     message.conversation.with_lock do
       state = message.conversation.extensions.to_h.fetch(KEY, {})
+      if state['status'] == 'waiting' && !platform_reply_allowed?(message.conversation)
+        cancel_waiting(message.conversation)
+        return true
+      end
+
       channel = message.inbox.channel.reload
       if channel.bot_fallback_enabled? && context['token'].present? && state['token'] == context['token'] &&
          state['bot_id'] == context['bot_id'] && current_bot_id(message.inbox) == context['bot_id'] && state['status'] == 'waiting'
@@ -142,6 +172,11 @@ class WecomCustomerService::BotFallbackService
       return unless channel.bot_fallback_enabled? && current_bot_id(conversation.inbox) == state['bot_id']
       return if conversation.resolved? || conversation.snoozed?
       return if state['status'] == 'waiting' && !conversation.pending?
+      # Once handoff has started, state 2 is its queue: polls and failed/processing retries must continue.
+      if state['status'] == 'waiting' && !platform_reply_allowed?(conversation)
+        cancel_waiting(conversation)
+        return
+      end
 
       claimed = state.except('error', 'next_poll_at').merge(
         'stopped' => true, 'stopped_at' => Time.current.iso8601(6), 'status' => 'processing',
