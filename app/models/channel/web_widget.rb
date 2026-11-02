@@ -40,6 +40,7 @@ class Channel::WebWidget < ApplicationRecord
                     { selected_feature_flags: [] }, { suggested_questions: [] }].freeze
 
   before_validation :validate_pre_chat_options
+  before_validation :normalize_suggested_questions
   validates :website_url, presence: true
   validates :widget_color, presence: true
   has_many :portals, foreign_key: 'channel_web_widget_id', dependent: :nullify, inverse_of: :channel_web_widget
@@ -56,6 +57,10 @@ class Channel::WebWidget < ApplicationRecord
             :check_for_column => false
 
   enum reply_time: { in_a_few_minutes: 0, in_a_few_hours: 1, in_a_day: 2 }
+
+  def normalize_suggested_questions
+    self.suggested_questions = suggested_questions.reject(&:blank?)
+  end
 
   def name
     'Website'

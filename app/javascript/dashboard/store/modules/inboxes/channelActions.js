@@ -9,7 +9,11 @@ export const buildInboxData = inboxParams => {
   Object.keys(inboxProperties).forEach(key => {
     formData.append(key, inboxProperties[key]);
   });
-  const { selectedFeatureFlags, ...channelParams } = channel;
+  const {
+    selectedFeatureFlags,
+    suggested_questions: suggestedQuestions,
+    ...channelParams
+  } = channel;
   // selectedFeatureFlags needs to be empty when creating a website channel
   if (selectedFeatureFlags) {
     if (selectedFeatureFlags.length) {
@@ -18,6 +22,15 @@ export const buildInboxData = inboxParams => {
       });
     } else {
       formData.append('channel[selected_feature_flags][]', '');
+    }
+  }
+  if (suggestedQuestions) {
+    if (suggestedQuestions.length) {
+      suggestedQuestions.forEach(question => {
+        formData.append('channel[suggested_questions][]', question);
+      });
+    } else {
+      formData.append('channel[suggested_questions][]', '');
     }
   }
   Object.keys(channelParams).forEach(key => {
