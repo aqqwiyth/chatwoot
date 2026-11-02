@@ -105,6 +105,10 @@ export const IFrameHelper = {
       ) {
         return;
       }
+      if (e.source !== IFrameHelper.getAppFrame()?.contentWindow ||
+          e.origin !== new URL(window.$chatwoot.baseUrl, window.location.href).origin) {
+        return;
+      }
       const message = JSON.parse(e.data.replace('chatwoot-widget:', ''));
       if (typeof IFrameHelper.events[message.event] === 'function') {
         IFrameHelper.events[message.event](message);

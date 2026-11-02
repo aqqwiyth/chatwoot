@@ -330,6 +330,10 @@ class Message < ApplicationRecord
 
   def ensure_content_type
     self.content_type ||= Message.content_types[:text]
+    first_card = items&.first if cards?
+    if content.blank? && first_card.is_a?(Hash) && %w[product order].include?(first_card.with_indifferent_access[:type])
+      self.content = first_card.with_indifferent_access[:title]
+    end
     self.extensions = {} unless extensions.is_a?(Hash)
   end
 

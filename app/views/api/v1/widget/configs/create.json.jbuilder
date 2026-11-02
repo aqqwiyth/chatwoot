@@ -1,4 +1,5 @@
 json.website_channel_config do
+  json.suggested_questions @web_widget.suggested_questions
   json.allow_messages_after_resolved @web_widget.inbox.allow_messages_after_resolved
   json.api_host ENV.fetch('FRONTEND_URL', nil)
   json.auth_token @token

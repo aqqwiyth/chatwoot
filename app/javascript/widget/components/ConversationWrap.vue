@@ -1,5 +1,6 @@
 <script>
 import ChatMessage from 'widget/components/ChatMessage.vue';
+import SuggestedQuestionsCard from 'widget/components/SuggestedQuestionsCard.vue';
 import AgentTypingBubble from 'widget/components/AgentTypingBubble.vue';
 import DateSeparator from 'shared/components/DateSeparator.vue';
 import Spinner from 'shared/components/Spinner.vue';
@@ -11,6 +12,7 @@ export default {
   name: 'ConversationWrap',
   components: {
     ChatMessage,
+    SuggestedQuestionsCard,
     AgentTypingBubble,
     DateSeparator,
     Spinner,
@@ -104,6 +106,7 @@ export default {
       <div v-if="isFetchingList" class="message--loader">
         <Spinner />
       </div>
+      <SuggestedQuestionsCard />
       <div
         v-for="groupedMessage in groupedMessages"
         :key="groupedMessage.date"

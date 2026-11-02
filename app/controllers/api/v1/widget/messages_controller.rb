@@ -1,5 +1,6 @@
 class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
   before_action :prevent_reply_to_resolved_conversation, only: [:create]
+  before_action :validate_commerce_card, only: [:create]
   before_action :set_conversation, only: [:create]
   before_action :set_message, only: [:update]
 
@@ -29,6 +30,20 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
   end
 
   private
+
+  def validate_commerce_card
+    return unless permitted_params.dig(:message, :content_type) == 'cards'
+
+    attributes = permitted_params.dig(:message, :content_attributes)&.to_h || {}
+    items = attributes['items']
+    unless items.is_a?(Array) && items.one? && %w[product order].include?(items.first['type'])
+      return render json: { error: 'Invalid commerce card' }, status: :unprocessable_entity
+    end
+
+    candidate = Message.new(content_type: :cards, content_attributes: attributes)
+    ContentAttributeValidator.new.validate(candidate)
+    render json: { errors: candidate.errors.full_messages }, status: :unprocessable_entity if candidate.errors.any?
+  end
 
   def build_attachment
     return if params[:message][:attachments].blank?
@@ -86,7 +101,9 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
     params.permit(
       :id, :before, :after, :website_token,
       contact: [:name, :email],
-      message: [:content, :referer_url, :timestamp, :echo_id, :reply_to],
+      message: [:content, :referer_url, :timestamp, :echo_id, :reply_to, :content_type,
+                { content_attributes: [{ items: [:type, :title, :product_id, :order_id, :price, :media_url,
+                                                 { action: [:type, :url, :path] }] }] }],
       custom_attributes: {},
       labels: []
     )

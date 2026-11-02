@@ -40,6 +40,7 @@ import DyteBubble from './bubbles/Dyte.vue';
 import LocationBubble from './bubbles/Location.vue';
 import CSATBubble from './bubbles/CSAT.vue';
 import FormBubble from './bubbles/Form.vue';
+import CommerceCardBubble from './bubbles/CommerceCard.vue';
 import VoiceCallBubble from './bubbles/VoiceCall.vue';
 import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
 import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
@@ -332,6 +333,11 @@ const componentToRender = computed(() => {
 
   if (props.contentAttributes?.whatsappFlowResponse) {
     return WhatsappFlowResponseBubble;
+  }
+
+  if (props.contentType === CONTENT_TYPES.CARDS &&
+      props.contentAttributes?.items?.some(item => ['product', 'order'].includes(item.type))) {
+    return CommerceCardBubble;
   }
 
   if (props.contentType === CONTENT_TYPES.INPUT_CSAT) {

@@ -80,6 +80,15 @@ const runSDK = ({ baseUrl, websiteToken }) => {
     enableEmojiPicker: chatwootSettings.enableEmojiPicker ?? true,
     enableEndConversation: chatwootSettings.enableEndConversation ?? true,
 
+    openConversation(card = null) {
+      IFrameHelper.sendMessage('open-conversation', { card });
+      IFrameHelper.events.toggleBubble('open');
+    },
+
+    sendCard(card) {
+      IFrameHelper.sendMessage('send-card', { card });
+    },
+
     toggle(state) {
       IFrameHelper.events.toggleBubble(state);
     },

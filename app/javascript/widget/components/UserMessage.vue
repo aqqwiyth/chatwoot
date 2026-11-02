@@ -1,4 +1,6 @@
 <script>
+import CommerceCard from 'shared/components/CommerceCard.vue';
+import { IFrameHelper } from 'widget/helpers/utils';
 import UserMessageBubble from 'widget/components/UserMessageBubble.vue';
 import MessageReplyButton from 'widget/components/MessageReplyButton.vue';
 import ImageBubble from 'widget/components/ImageBubble.vue';
@@ -17,6 +19,7 @@ export default {
   name: 'UserMessage',
   components: {
     UserMessageBubble,
+    CommerceCard,
     MessageReplyButton,
     ImageBubble,
     VideoBubble,
@@ -51,6 +54,10 @@ export default {
       const { status = '' } = this.message;
       return status === 'in_progress';
     },
+    commerceCard() {
+      const item = this.message.content_attributes?.items?.[0];
+      return this.message.content_type === 'cards' && ['product', 'order'].includes(item?.type) ? item : null;
+    },
     showTextBubble() {
       const { message } = this;
       return !!message.content;
@@ -84,6 +91,9 @@ export default {
     this.hasVideoError = false;
   },
   methods: {
+    selectCard(action) {
+      IFrameHelper.sendMessage({ event: 'onEvent', eventIdentifier: 'chatwoot:card-click', data: action });
+    },
     async retrySendMessage() {
       await this.$store.dispatch('conversation/sendMessageWithData', {
         message: this.message,
@@ -121,8 +131,9 @@ export default {
             />
           </div>
           <DragWrapper direction="left" @dragged="toggleReply">
+            <CommerceCard v-if="commerceCard" :item="commerceCard" interactive @select="selectCard" />
             <UserMessageBubble
-              v-if="showTextBubble"
+              v-else-if="showTextBubble"
               :message="message.content"
               :status="message.status"
               :widget-color="widgetColor"

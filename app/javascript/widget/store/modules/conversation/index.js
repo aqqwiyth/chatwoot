@@ -4,8 +4,11 @@ import { mutations } from './mutations';
 
 const state = {
   conversations: {},
+  directConversation: false,
+  cardPreview: null,
   meta: {
     userLastSeenAt: undefined,
+    showSuggestedQuestions: null,
   },
   uiFlags: {
     allMessagesLoaded: false,

@@ -2,8 +2,15 @@ import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import { findUndeliveredMessage } from './helpers';
 
 export const mutations = {
+  setDirectConversation($state, value) {
+    $state.directConversation = value;
+  },
+  setCardPreview($state, card) {
+    $state.cardPreview = card;
+  },
   clearConversations($state) {
     $state.conversations = {};
+    $state.meta.showSuggestedQuestions = null;
     $state.pendingCustomAttributes = {};
     $state.pendingLabels = [];
   },
@@ -58,6 +65,12 @@ export const mutations = {
 
   setConversationListLoading($state, status) {
     $state.uiFlags.isFetchingList = status;
+  },
+
+  setSuggestedQuestionsVisibility($state, hasConversation) {
+    if ($state.meta.showSuggestedQuestions === null) {
+      $state.meta.showSuggestedQuestions = !hasConversation;
+    }
   },
 
   setMessagesInConversation($state, payload) {

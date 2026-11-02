@@ -79,12 +79,14 @@ export const actions = {
       dispatch('get');
       if (identifierHash || widgetAuthToken) {
         dispatch('conversation/clearConversations', {}, { root: true });
-        dispatch('conversation/fetchOldConversations', {}, { root: true });
-        dispatch('conversationAttributes/getAttributes', {}, { root: true });
+        await dispatch('conversation/fetchOldConversations', {}, { root: true });
+        await dispatch('conversationAttributes/getAttributes', {}, { root: true });
       }
+      return true;
     } catch (error) {
       const data = parseErrorData(error);
       sendMessage({ event: 'error', errorType: SET_USER_ERROR, data });
+      return false;
     }
   },
   setCustomAttributes: async (_, customAttributes = {}) => {

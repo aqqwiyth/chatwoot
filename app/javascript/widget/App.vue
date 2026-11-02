@@ -99,7 +99,7 @@ export default {
       this.registerListeners();
       this.sendLoadedEvent();
     } else {
-      this.fetchOldConversations();
+      this.conversationLoadPromise = this.fetchOldConversations();
       this.fetchAvailableAgents(websiteToken);
       this.setLocale(getLocale(window.location.search));
     }
@@ -224,6 +224,7 @@ export default {
       }
     },
     setUnreadView() {
+      if (this.$store.getters['conversation/getDirectConversation']) return;
       const { unreadMessageCount } = this;
       if (!this.showUnreadMessagesDialog || !this.isIFrame) return;
 
@@ -277,11 +278,26 @@ export default {
         if (message.event === 'config-set') {
           this.setLocale(message.locale);
           this.setBubbleLabel();
-          this.fetchOldConversations().then(() => this.setUnreadView());
+          this.conversationLoadPromise = this.fetchOldConversations();
+          this.conversationLoadPromise.then(() => this.setUnreadView());
           this.fetchAvailableAgents(websiteToken);
           this.setAppConfig(message);
           this.$store.dispatch('contacts/get');
           this.setCampaignReadData(message.campaignsSnoozedTill);
+        } else if (message.event === 'open-conversation') {
+          this.$store.commit('conversation/setDirectConversation', true);
+          this.router.replace({ name: 'messages' });
+          Promise.all([this.conversationLoadPromise, this.setUserPromise]).then(([, success]) => {
+            if (success !== false) this.$store.commit('conversation/setCardPreview', message.card);
+          });
+        } else if (message.event === 'send-card') {
+          Promise.all([this.conversationLoadPromise, this.setUserPromise]).then(
+            ([, success]) => {
+              if (success !== false) {
+                this.$store.dispatch('conversation/sendCard', message.card);
+              }
+            }
+          );
         } else if (message.event === 'widget-visible') {
           this.scrollConversationToBottom();
         } else if (message.event === 'change-url') {
@@ -302,21 +318,30 @@ export default {
         } else if (message.event === 'remove-label') {
           this.$store.dispatch('conversationLabels/destroy', message.label);
         } else if (message.event === 'set-user') {
-          this.$store.dispatch('contacts/setUser', message);
-        } else if (message.event === 'set-custom-attributes') {
-          this.$store.dispatch(
-            'contacts/setCustomAttributes',
-            message.customAttributes
+          this.setUserPromise = Promise.resolve(this.conversationLoadPromise).then(() =>
+            this.$store.dispatch('contacts/setUser', message)
           );
+        } else if (message.event === 'set-custom-attributes') {
+          Promise.resolve(this.setUserPromise).then(success => {
+            if (success !== false) {
+              this.$store.dispatch(
+                'contacts/setCustomAttributes',
+                message.customAttributes
+              );
+            }
+          });
         } else if (message.event === 'delete-custom-attribute') {
           this.$store.dispatch(
             'contacts/deleteCustomAttribute',
             message.customAttribute
           );
         } else if (message.event === 'set-conversation-custom-attributes') {
-          this.$store.dispatch(
-            'conversation/setCustomAttributes',
-            message.customAttributes
+          Promise.all([this.conversationLoadPromise, this.setUserPromise]).then(
+            ([, success]) => {
+              if (success !== false) {
+                this.$store.dispatch('conversation/setCustomAttributes', message.customAttributes);
+              }
+            }
           );
         } else if (message.event === 'delete-conversation-custom-attribute') {
           this.$store.dispatch(

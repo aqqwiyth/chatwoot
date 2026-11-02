@@ -1,5 +1,13 @@
 {
   "COMPONENTS": {
+    "CARD_PREVIEW": {
+      "SEND": "Send product",
+      "DISMISS": "Dismiss"
+    },
+    "SUGGESTED_QUESTIONS": {
+      "TITLE": "Suggested questions",
+      "NEXT": "Show more"
+    },
     "FILE_BUBBLE": {
       "DOWNLOAD": "Download",
       "UPLOADING": "Uploading..."

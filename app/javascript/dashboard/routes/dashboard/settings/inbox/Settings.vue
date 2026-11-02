@@ -104,6 +104,7 @@ export default {
       continuityViaEmail: true,
       selectedInboxName: '',
       channelWebsiteUrl: '',
+      suggestedQuestions: '',
       webhookUrl: '',
       channelWelcomeTitle: '',
       channelWelcomeTagline: '',
@@ -561,6 +562,7 @@ export default {
         this.inbox.allow_messages_after_resolved;
       this.continuityViaEmail = this.inbox.continuity_via_email;
       this.channelWebsiteUrl = this.inbox.website_url;
+      this.suggestedQuestions = (this.inbox.suggested_questions || []).join('\n');
       this.channelWelcomeTitle = this.inbox.welcome_title;
       this.channelWelcomeTagline = this.inbox.welcome_tagline || '';
       this.selectedFeatureFlags = this.inbox.selected_feature_flags || [];
@@ -701,6 +703,10 @@ export default {
           channel: {
             widget_color: this.inbox.widget_color,
             website_url: this.channelWebsiteUrl,
+            suggested_questions: this.suggestedQuestions
+              .split('\n')
+              .map(q => q.trim())
+              .filter(Boolean),
             webhook_url: this.webhookUrl,
             welcome_title: this.channelWelcomeTitle || '',
             welcome_tagline: this.channelWelcomeTagline || '',
@@ -966,6 +972,14 @@ export default {
                   )
                 "
               />
+            </SettingsFieldSection>
+
+            <SettingsFieldSection
+              v-if="isAWebWidgetInbox"
+              :label="$t('INBOX_MGMT.SUGGESTED_QUESTIONS.LABEL')"
+              :help-text="$t('INBOX_MGMT.SUGGESTED_QUESTIONS.HELP')"
+            >
+              <textarea v-model="suggestedQuestions" rows="5" class="w-full" />
             </SettingsFieldSection>
 
             <SettingsFieldSection

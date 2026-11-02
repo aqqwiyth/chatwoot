@@ -12,8 +12,7 @@ class ContentAttributeValidator < ActiveModel::Validator
       validate_item_attributes!(record, ALLOWED_SELECT_ITEM_KEYS)
     when 'cards'
       validate_items!(record)
-      validate_item_attributes!(record, ALLOWED_CARD_ITEM_KEYS)
-      validate_item_actions!(record)
+      validate_cards!(record)
     when 'form'
       validate_items!(record)
       validate_item_attributes!(record, ALLOWED_FORM_ITEM_KEYS)
@@ -36,17 +35,50 @@ class ContentAttributeValidator < ActiveModel::Validator
     record.errors.add(:content_attributes, "contains invalid keys for items : #{invalid_keys}") if invalid_keys.present?
   end
 
-  def validate_item_actions!(record)
-    if record.items.select { |item| item[:actions].blank? }.present?
-      record.errors.add(:content_attributes, 'contains items missing actions') && return
-    end
+  def validate_cards!(record)
+    return if record.items.blank? || record.items.any? { |item| !item.is_a?(Hash) }
 
-    validate_item_action_attributes!(record)
+    record.items.each do |item|
+      item = item.with_indifferent_access
+      if %w[product order].include?(item[:type])
+        validate_commerce_card!(record, item)
+      else
+        invalid_keys = item.keys.map(&:to_sym) - ALLOWED_CARD_ITEM_KEYS
+        record.errors.add(:content_attributes, "contains invalid card keys: #{invalid_keys}") if invalid_keys.present?
+        record.errors.add(:content_attributes, 'contains items missing actions') if item[:actions].blank?
+        Array(item[:actions]).each do |action|
+          invalid = action.keys.map(&:to_sym) - ALLOWED_CARD_ITEM_ACTION_KEYS
+          record.errors.add(:content_attributes, "contains invalid action keys: #{invalid}") if invalid.present?
+        end
+      end
+    end
   end
 
-  def validate_item_action_attributes!(record)
-    item_action_keys = record.items.collect { |item| item[:actions].collect(&:keys) }
-    invalid_keys = item_action_keys.flatten.compact.map(&:to_sym) - ALLOWED_CARD_ITEM_ACTION_KEYS
-    record.errors.add(:content_attributes, "contains invalid keys for actions:  #{invalid_keys}") if invalid_keys.present?
+  def validate_commerce_card!(record, item)
+    allowed = %w[type title product_id order_id price media_url action]
+    invalid = item.keys - allowed
+    record.errors.add(:content_attributes, "contains invalid card keys: #{invalid}") if invalid.present?
+    fields = %w[title product_id order_id price media_url]
+    unless fields.all? { |key| item[key].nil? || item[key].is_a?(String) }
+      record.errors.add(:content_attributes, 'commerce card fields must be strings')
+    end
+    required = %w[title product_id media_url]
+    required.concat(%w[order_id price]) if item[:type] == 'order'
+    record.errors.add(:content_attributes, 'commerce card is missing required fields') if required.any? { |key| item[key].blank? }
+    unless item[:media_url].to_s.match?(%r{\Ahttps?://[^\s]+\z}i)
+      record.errors.add(:content_attributes, 'contains an invalid card image URL')
+    end
+    action = item[:action]
+    return if action.blank?
+
+    valid = action.is_a?(Hash) && case action[:type]
+                                when 'url'
+                                  action.keys.sort == %w[type url] && action[:url].to_s.match?(/\Ahttps?:\/\/[^\s]+\z/i)
+                                when 'miniapp'
+                                  action.keys.sort == %w[path type] && action[:path].to_s.match?(%r{\A/pages/[^\s]*\z})
+                                else
+                                  false
+                                end
+    record.errors.add(:content_attributes, 'contains an invalid card action') unless valid
   end
 end

@@ -23,7 +23,11 @@ const createConversation = params => {
   };
 };
 
-const sendMessage = (content, replyTo, { customAttributes, labels } = {}) => {
+const sendMessage = (
+  content,
+  replyTo,
+  { customAttributes, labels, cardAttributes } = {}
+) => {
   const referrerURL = window.referrerURL || '';
   const search = buildSearchParamsWithLocale(window.location.search);
   const params = {
@@ -34,6 +38,10 @@ const sendMessage = (content, replyTo, { customAttributes, labels } = {}) => {
       referer_url: referrerURL,
     },
   };
+  if (cardAttributes) {
+    params.message.content_type = 'cards';
+    params.message.content_attributes = cardAttributes;
+  }
   if (customAttributes && Object.keys(customAttributes).length > 0) {
     params.custom_attributes = customAttributes;
   }

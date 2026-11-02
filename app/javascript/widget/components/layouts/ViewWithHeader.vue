@@ -28,6 +28,7 @@ export default {
     ...mapGetters({
       appConfig: 'appConfig/getAppConfig',
       availableAgents: 'agent/availableAgents',
+      directConversation: 'conversation/getDirectConversation',
     }),
     portal() {
       return window.chatwootWebChannel.portal;
@@ -109,6 +110,7 @@ export default {
   >
     <div class="relative flex flex-col h-full">
       <div
+        v-if="!directConversation"
         :class="{
           expanded: !isHeaderCollapsed,
           collapsed: isHeaderCollapsed,
@@ -135,7 +137,7 @@ export default {
           :show-back-button="showBackButton"
         />
       </div>
-      <Banner />
+      <Banner v-if="!directConversation" />
       <router-view />
 
       <Branding v-if="!isOnArticleViewer" :disable-branding="disableBranding" />

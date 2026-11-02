@@ -4,6 +4,9 @@ import { groupConversationBySender } from './helpers';
 import { formatUnixDate } from 'shared/helpers/DateHelper';
 
 export const getters = {
+  getDirectConversation: $state => $state.directConversation,
+  getCardPreview: $state => $state.cardPreview,
+  getShowSuggestedQuestions: $state => $state.meta.showSuggestedQuestions,
   getAllMessagesLoaded: _state => _state.uiFlags.allMessagesLoaded,
   getIsCreating: _state => _state.uiFlags.isCreating,
   getIsAgentTyping: _state => _state.uiFlags.isAgentTyping,

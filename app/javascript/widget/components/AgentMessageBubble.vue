@@ -1,5 +1,7 @@
 <script>
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
+import CommerceCard from 'shared/components/CommerceCard.vue';
+import { IFrameHelper } from 'widget/helpers/utils';
 import ChatCard from 'shared/components/ChatCard.vue';
 import ChatForm from 'shared/components/ChatForm.vue';
 import ChatOptions from 'shared/components/ChatOptions.vue';
@@ -13,6 +15,7 @@ export default {
   components: {
     ChatArticle,
     ChatCard,
+    CommerceCard,
     ChatForm,
     ChatOptions,
     EmailInput,
@@ -66,6 +69,9 @@ export default {
     },
   },
   methods: {
+    selectCard(action) {
+      IFrameHelper.sendMessage({ event: 'onEvent', eventIdentifier: 'chatwoot:card-click', data: action });
+    },
     onResponse(messageResponse) {
       this.$store.dispatch('message/update', messageResponse);
     },
@@ -129,14 +135,10 @@ export default {
       @submit="onFormSubmit"
     />
     <div v-if="isCards">
-      <ChatCard
-        v-for="item in messageContentAttributes.items"
-        :key="item.title"
-        :media-url="item.media_url"
-        :title="item.title"
-        :description="item.description"
-        :actions="item.actions"
-      />
+      <template v-for="item in messageContentAttributes.items" :key="item.title">
+        <CommerceCard v-if="['product', 'order'].includes(item.type)" :item="item" interactive @select="selectCard" />
+        <ChatCard v-else :media-url="item.media_url" :title="item.title" :description="item.description" :actions="item.actions" />
+      </template>
     </div>
     <div v-if="isArticle">
       <ChatArticle :items="messageContentAttributes.items" />

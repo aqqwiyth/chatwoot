@@ -82,9 +82,9 @@ class Api::V1::Widget::BaseController < ApplicationController
       sender: @contact,
       content: permitted_params[:message][:content],
       inbox_id: conversation.inbox_id,
-      content_attributes: {
-        in_reply_to: permitted_params[:message][:reply_to]
-      },
+      content_type: permitted_params[:message][:content_type] == 'cards' ? :cards : :text,
+      content_attributes: permitted_params[:message][:content_type] == 'cards' ?
+        permitted_params[:message][:content_attributes]&.to_h : { in_reply_to: permitted_params[:message][:reply_to] },
       echo_id: permitted_params[:message][:echo_id],
       message_type: :incoming
     }

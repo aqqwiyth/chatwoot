@@ -9,11 +9,12 @@ const createConversationAPI = async content => {
 const sendMessageAPI = async (
   content,
   replyTo = null,
-  { customAttributes, labels } = {}
+  { customAttributes, labels, cardAttributes } = {}
 ) => {
   const urlData = endPoints.sendMessage(content, replyTo, {
     customAttributes,
     labels,
+    cardAttributes,
   });
   return API.post(urlData.url, urlData.params);
 };

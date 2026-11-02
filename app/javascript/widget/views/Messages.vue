@@ -3,9 +3,10 @@ import { mapGetters } from 'vuex';
 
 import ChatFooter from '../components/ChatFooter.vue';
 import ConversationWrap from '../components/ConversationWrap.vue';
+import CardPreview from '../components/CardPreview.vue';
 
 export default {
-  components: { ChatFooter, ConversationWrap },
+  components: { ChatFooter, ConversationWrap, CardPreview },
   computed: {
     ...mapGetters({
       groupedMessages: 'conversation/getGroupedConversation',
@@ -24,6 +25,7 @@ export default {
     <div class="flex flex-1 overflow-auto">
       <ConversationWrap :grouped-messages="groupedMessages" />
     </div>
+    <CardPreview />
     <ChatFooter class="px-5" />
   </div>
 </template>

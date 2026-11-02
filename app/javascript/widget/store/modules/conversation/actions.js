@@ -30,6 +30,30 @@ export const actions = {
       commit('setConversationUIFlag', { isCreating: false });
     }
   },
+  sendCard: async ({ dispatch, state: conversationState }, card) => {
+    const item = {
+      type: card.type,
+      title: card.title,
+      product_id: card.productId,
+      order_id: card.orderId,
+      price: card.price,
+      media_url: card.imageUrl,
+      action: card.action,
+    };
+    Object.keys(item).forEach(key => {
+      if (item[key] === undefined) delete item[key];
+    });
+    const message = {
+      ...createTemporaryMessage({ content: card.title }),
+      content_type: 'cards',
+      content_attributes: { items: [item] },
+    };
+    return dispatch('sendMessageWithData', {
+      message,
+      pendingCustomAttributes: conversationState.pendingCustomAttributes,
+      pendingLabels: conversationState.pendingLabels,
+    });
+  },
   sendMessage: async ({ dispatch, state: conversationState }, params) => {
     const { content, replyTo } = params;
     const message = createTemporaryMessage({ content, replyTo });
@@ -57,6 +81,8 @@ export const actions = {
           ? pendingCustomAttributes
           : undefined,
         labels: hasPendingMetadata ? pendingLabels : undefined,
+        cardAttributes:
+          message.content_type === 'cards' ? message.content_attributes : undefined,
       });
       if (hasPendingMetadata) {
         commit('clearPendingConversationMetadata');
@@ -130,6 +156,7 @@ export const actions = {
         data: { payload, meta },
       } = await getMessagesAPI({ before });
       const { contact_last_seen_at: lastSeen } = meta;
+      if (!before) commit('setSuggestedQuestionsVisibility', meta.has_conversation);
       const formattedMessages = getNonDeletedMessages({ messages: payload });
       commit('conversation/setMetaUserLastSeenAt', lastSeen, { root: true });
       commit('setMessagesInConversation', formattedMessages);
