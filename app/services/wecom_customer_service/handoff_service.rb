@@ -4,6 +4,10 @@ class WecomCustomerService::HandoffService
   HUMAN_SERVICE_STATE = 3
   SERVICER_POLL_INTERVAL = 3.minutes
 
+  def self.servicer_cursors
+    @servicer_cursors ||= Hash.new(0)
+  end
+
   def initialize(message: nil, conversation: nil)
     @message = message
     @conversation = conversation || message.conversation
@@ -50,7 +54,7 @@ class WecomCustomerService::HandoffService
     return state_result(state, current_state) if current_state == HUMAN_SERVICE_STATE
     return failed_state_result(state) if current_state == 4
 
-    servicer_userid = active_servicer_userid(api_client.list_servicers)
+    servicer_userid = next_active_servicer_userid(api_client.list_servicers)
     return state_result(state, QUEUED_SERVICE_STATE) if servicer_userid.blank? && current_state == QUEUED_SERVICE_STATE
 
     target_state = servicer_userid.present? ? HUMAN_SERVICE_STATE : QUEUED_SERVICE_STATE
@@ -64,12 +68,18 @@ class WecomCustomerService::HandoffService
     state_result(state, target_state, servicer_userid: servicer_userid, msg_code: response['msg_code'])
   end
 
-  def active_servicer_userid(payload)
-    Array(payload['servicer_list']).filter_map do |servicer|
+  def next_active_servicer_userid(payload)
+    active_userids = Array(payload['servicer_list']).filter_map do |servicer|
       next unless servicer['status'].to_i == ACTIVE_SERVICER_STATUS
 
       servicer['userid'].presence
-    end.first
+    end
+    return if active_userids.empty?
+
+    cursors = self.class.servicer_cursors
+    index = cursors[@channel.id] % active_userids.size
+    cursors[@channel.id] = index + 1
+    active_userids[index]
   end
 
   def transfer_service_state(api_client, external_userid, service_state, servicer_userid)
@@ -81,7 +91,7 @@ class WecomCustomerService::HandoffService
   rescue WecomCustomerService::ApiError => e
     raise unless e.servicer_offline? && service_state == HUMAN_SERVICE_STATE
 
-    refreshed_servicer_userid = active_servicer_userid(api_client.list_servicers)
+    refreshed_servicer_userid = next_active_servicer_userid(api_client.list_servicers)
     raise if refreshed_servicer_userid.blank?
 
     api_client.transfer_service_state(
