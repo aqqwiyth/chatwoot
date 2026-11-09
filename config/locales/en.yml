@@ -134,6 +134,7 @@ en:
       search:
         query_missing: Specify search string with parameter q
     messages:
+      wecom_menu_too_long: 'must be at most 1024 bytes'
       search:
         time_range_limit_exceeded: 'Search is limited to the last %{days} days'
     categories:

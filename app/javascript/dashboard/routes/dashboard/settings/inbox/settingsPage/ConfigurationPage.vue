@@ -17,6 +17,9 @@ import TextArea from 'next/textarea/TextArea.vue';
 import { sanitizeAllowedDomains } from 'dashboard/helper/URLHelper';
 import WhatsappBusinessManagementToken from './WhatsappBusinessManagementToken.vue';
 import WecomBotFallbackSettings from './WecomBotFallbackSettings.vue';
+import WecomReceptionSettings from './WecomReceptionSettings.vue';
+import WecomAutoCloseSettings from './WecomAutoCloseSettings.vue';
+import WecomWelcomeSettings from './WecomWelcomeSettings.vue';
 
 export default {
   components: {
@@ -29,6 +32,9 @@ export default {
     TextArea,
     WhatsappBusinessManagementToken,
     WecomBotFallbackSettings,
+    WecomReceptionSettings,
+    WecomAutoCloseSettings,
+    WecomWelcomeSettings,
   },
   mixins: [inboxMixin],
   props: {
@@ -43,6 +49,8 @@ export default {
   },
   data() {
     return {
+      wecomTab: 'welcome',
+      wecomReceptionEnabled: false,
       hmacMandatory: false,
       allowMobileWebview: false,
       whatsAppInboxAPIKey: '',
@@ -61,15 +69,11 @@ export default {
       wecomSendAccountId: '[]',
       wecomSendBaseUrl: '',
       wecomWebhookSecret: '',
-      wecomCustomerWebhookUrl: '',
       wecomCustomerCallbackToken: '',
       wecomCustomerEncodingAesKey: '',
       wecomCustomerCorpId: '',
       wecomCustomerOpenKfid: '',
       wecomCustomerSecret: '',
-      wecomCustomerWelcomeMessage: '',
-      wecomCustomerSessionAssignedMessage: '',
-      wecomCustomerSessionEndedMessage: '',
     };
   },
   validations: {
@@ -166,17 +170,11 @@ export default {
         }
       }
       if (this.isWecomCustomerService) {
-        this.wecomCustomerWebhookUrl = this.inbox.webhook_url || '';
         this.wecomCustomerCallbackToken = this.inbox.callback_token || '';
         this.wecomCustomerEncodingAesKey = this.inbox.encoding_aes_key || '';
         this.wecomCustomerCorpId = this.inbox.corp_id || '';
         this.wecomCustomerOpenKfid = this.inbox.open_kfid || '';
         this.wecomCustomerSecret = this.inbox.secret || '';
-        this.wecomCustomerWelcomeMessage = this.inbox.welcome_message || '';
-        this.wecomCustomerSessionAssignedMessage =
-          this.inbox.session_assigned_message || '';
-        this.wecomCustomerSessionEndedMessage =
-          this.inbox.session_ended_message || '';
       }
       this.$nextTick(() => {
         this.isSettingDefaults = false;
@@ -252,16 +250,11 @@ export default {
           id: this.inbox.id,
           formData: false,
           channel: {
-            webhook_url: this.wecomCustomerWebhookUrl.trim(),
             callback_token: this.wecomCustomerCallbackToken.trim(),
             encoding_aes_key: this.wecomCustomerEncodingAesKey.trim(),
             corp_id: this.wecomCustomerCorpId.trim(),
             open_kfid: this.wecomCustomerOpenKfid.trim(),
             secret: this.wecomCustomerSecret.trim(),
-            welcome_message: this.wecomCustomerWelcomeMessage.trim(),
-            session_assigned_message:
-              this.wecomCustomerSessionAssignedMessage.trim(),
-            session_ended_message: this.wecomCustomerSessionEndedMessage.trim(),
           },
         });
         useAlert(
@@ -599,80 +592,96 @@ export default {
     </SettingsFieldSection>
   </div>
   <div v-else-if="isWecomCustomerService">
-    <WecomBotFallbackSettings :inbox="inbox" />
-    <SettingsFieldSection
-      :label="$t(
-        'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_URL'
-      )"
+    <div
+      class="flex flex-wrap gap-4 border-b border-n-weak mb-6"
+      role="tablist"
     >
-      <woot-code lang="html" :script="inbox.callback_webhook_url" />
-    </SettingsFieldSection>
-    <SettingsFieldSection
-      :label="$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.TITLE')"
-      :help-text="$t(
-        'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.DESCRIPTION'
-      )"
-    >
-      <woot-input
-        v-model.trim="wecomCustomerWebhookUrl"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.WEBHOOK_URL'
-        )"
+      <button
+        v-for="tab in ['welcome', 'reception', 'end', 'system']"
+        :key="tab"
+        type="button"
+        role="tab"
+        :aria-selected="wecomTab === tab"
+        class="py-3 border-b-2"
+        :class="
+          wecomTab === tab
+            ? 'border-n-brand text-n-brand'
+            : 'border-transparent text-n-slate-11'
+        "
+        @click="wecomTab = tab"
+      >
+        {{
+          $t(
+            `INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.TAB_${tab.toUpperCase()}`
+          )
+        }}
+      </button>
+    </div>
+    <WecomWelcomeSettings v-if="wecomTab === 'welcome'" :inbox="inbox" />
+    <template v-if="wecomTab === 'reception'">
+      <WecomReceptionSettings
+        :inbox="inbox"
+        @enabled-change="wecomReceptionEnabled = $event"
       />
-      <woot-input
-        v-model.trim="wecomCustomerOpenKfid"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.OPEN_KFID'
-        )"
+      <WecomBotFallbackSettings
+        :inbox="inbox"
+        :disabled="!wecomReceptionEnabled"
       />
-      <woot-input
-        v-model.trim="wecomCustomerSecret"
-        type="password"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SECRET'
-        )"
-      />
-      <woot-input
-        v-model.trim="wecomCustomerCallbackToken"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_TOKEN'
-        )"
-      />
-      <woot-input
-        v-model.trim="wecomCustomerEncodingAesKey"
-        type="password"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.ENCODING_AES_KEY'
-        )"
-      />
-      <woot-input
-        v-model.trim="wecomCustomerCorpId"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CORP_ID'
-        )"
-      />
-      <woot-input
-        v-model.trim="wecomCustomerWelcomeMessage"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.WELCOME_MESSAGE'
-        )"
-      />
-      <woot-input
-        v-model.trim="wecomCustomerSessionAssignedMessage"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SESSION_ASSIGNED_MESSAGE'
-        )"
-      />
-      <woot-input
-        v-model.trim="wecomCustomerSessionEndedMessage"
-        :label="$t(
-          'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SESSION_ENDED_MESSAGE'
-        )"
-      />
-      <NextButton solid blue @click="updateWecomCustomerService">
-        {{ $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SAVE') }}
-      </NextButton>
-    </SettingsFieldSection>
+    </template>
+    <WecomAutoCloseSettings v-if="wecomTab === 'end'" :inbox="inbox" />
+    <template v-if="wecomTab === 'system'">
+      <SettingsFieldSection
+        :label="
+          $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_URL')
+        "
+      >
+        <woot-code lang="html" :script="inbox.callback_webhook_url" />
+      </SettingsFieldSection>
+      <SettingsFieldSection
+        :label="$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.TITLE')"
+        :help-text="
+          $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.DESCRIPTION')
+        "
+      >
+        <woot-input
+          v-model.trim="wecomCustomerOpenKfid"
+          :label="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.OPEN_KFID')
+          "
+        />
+        <woot-input
+          v-model.trim="wecomCustomerSecret"
+          type="password"
+          :label="$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SECRET')"
+        />
+        <woot-input
+          v-model.trim="wecomCustomerCallbackToken"
+          :label="
+            $t(
+              'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CALLBACK_TOKEN'
+            )
+          "
+        />
+        <woot-input
+          v-model.trim="wecomCustomerEncodingAesKey"
+          type="password"
+          :label="
+            $t(
+              'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.ENCODING_AES_KEY'
+            )
+          "
+        />
+        <woot-input
+          v-model.trim="wecomCustomerCorpId"
+          :label="
+            $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.CORP_ID')
+          "
+        />
+        <NextButton solid blue @click="updateWecomCustomerService">
+          {{ $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SAVE') }}
+        </NextButton>
+      </SettingsFieldSection>
+    </template>
   </div>
   <div v-else-if="isAWhatsAppChannel && !isATwilioChannel">
     <div v-if="inbox.provider_config">

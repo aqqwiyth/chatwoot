@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_01_000000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_09_000001) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -748,7 +748,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_01_000000) do
     t.string "identifier", null: false
     t.string "open_kfid", null: false
     t.string "secret", null: false
-    t.string "webhook_url", null: false
     t.string "callback_token", null: false
     t.string "encoding_aes_key", null: false
     t.string "corp_id", null: false
@@ -759,8 +758,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_01_000000) do
     t.text "session_assigned_message"
     t.text "session_ended_message"
     t.boolean "bot_fallback_enabled", default: false, null: false
-    t.integer "bot_fallback_timeout_seconds", default: 30, null: false
+    t.integer "bot_fallback_timeout_seconds", default: 120, null: false
     t.string "bot_fallback_target", default: "wecom_platform", null: false
+    t.boolean "human_reception_enabled", default: true, null: false
+    t.boolean "reception_queue_enabled", default: true, null: false
+    t.jsonb "reception_servicer_names", default: {}, null: false
+    t.text "outside_reception_hours_message", default: "当前不在人工接待时间，请稍后联系。", null: false
+    t.text "reception_busy_message", default: "当前暂无客服接待，请稍后联系。", null: false
+    t.integer "auto_close_after_minutes", default: 0, null: false
+    t.integer "agent_response_timeout_minutes", default: 0, null: false
+    t.integer "max_concurrent_receptions", default: 10, null: false
+    t.boolean "reception_queue_auto_assign", default: false, null: false
+    t.boolean "satisfaction_invitation_enabled", default: false, null: false
+    t.text "satisfaction_invitation_message", default: "你对本次服务是否满意？", null: false
     t.index ["account_id"], name: "index_channel_wecom_customer_services_on_account_id"
     t.index ["identifier"], name: "index_channel_wecom_customer_services_on_identifier", unique: true
   end
@@ -1624,6 +1634,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_01_000000) do
     t.datetime "next_refresh_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "last_customer_message_at"
+    t.datetime "auto_close_attempted_at"
+    t.datetime "auto_close_reply_at"
+    t.bigint "auto_close_reply_id"
     t.index ["channel_id", "external_userid"], name: "index_wecom_platform_sessions_on_channel_and_user", unique: true
     t.index ["channel_id"], name: "index_wecom_customer_service_platform_sessions_on_channel_id"
     t.index ["next_refresh_at"], name: "index_wecom_platform_sessions_on_next_refresh"

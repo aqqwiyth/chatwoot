@@ -4,23 +4,19 @@ import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import SettingsFieldSection from 'dashboard/components-next/Settings/SettingsFieldSection.vue';
-import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   inbox: { type: Object, required: true },
+  disabled: { type: Boolean, default: false },
 });
 
 const store = useStore();
 const { t } = useI18n();
-const I18N_PREFIX =
-  'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK';
-const MIN_TIMEOUT_SECONDS = 1;
-const MAX_TIMEOUT_SECONDS = 3600;
-const DEFAULT_TIMEOUT_SECONDS = 30;
-const enabled = ref(false);
+const MIN_TIMEOUT_SECONDS = 60;
+const MAX_TIMEOUT_SECONDS = 300;
+const DEFAULT_TIMEOUT_SECONDS = 120;
 const timeoutSeconds = ref(DEFAULT_TIMEOUT_SECONDS);
-const target = ref('wecom_platform');
 const isSaving = ref(false);
 const isTimeoutValid = computed(
   () =>
@@ -32,10 +28,8 @@ const isTimeoutValid = computed(
 watch(
   () => props.inbox,
   inbox => {
-    enabled.value = inbox.bot_fallback_enabled ?? false;
     timeoutSeconds.value =
       inbox.bot_fallback_timeout_seconds ?? DEFAULT_TIMEOUT_SECONDS;
-    target.value = inbox.bot_fallback_target ?? 'wecom_platform';
   },
   { immediate: true }
 );
@@ -49,14 +43,17 @@ const save = async () => {
       id: props.inbox.id,
       formData: false,
       channel: {
-        bot_fallback_enabled: enabled.value,
         bot_fallback_timeout_seconds: timeoutSeconds.value,
-        bot_fallback_target: target.value,
       },
     });
-    useAlert(t(`${I18N_PREFIX}.SUCCESS`));
+    useAlert(
+      t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.SUCCESS')
+    );
   } catch (error) {
-    useAlert(error.message || t(`${I18N_PREFIX}.ERROR`));
+    useAlert(
+      error.message ||
+        t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.ERROR')
+    );
   } finally {
     isSaving.value = false;
   }
@@ -65,44 +62,54 @@ const save = async () => {
 
 <template>
   <SettingsFieldSection
-    :label="t(`${I18N_PREFIX}.TITLE`)"
-    :help-text="t(`${I18N_PREFIX}.DESCRIPTION`)"
+    :label="
+      t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.TITLE')
+    "
+    :help-text="
+      t(
+        'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.DESCRIPTION'
+      )
+    "
   >
     <form class="flex flex-col gap-4" @submit.prevent="save">
-      <SettingsToggleSection
-        v-model="enabled"
-        :header="t(`${I18N_PREFIX}.ENABLE`)"
-        :description="t(`${I18N_PREFIX}.BOT_NOTICE`)"
-      />
-      <label>
-        {{ t(`${I18N_PREFIX}.TIMEOUT`) }}
-        <input
-          v-model.number="timeoutSeconds"
-          type="number"
-          :min="MIN_TIMEOUT_SECONDS"
-          :max="MAX_TIMEOUT_SECONDS"
-          step="1"
-          required
-        />
-      </label>
-      <label>
-        {{ t(`${I18N_PREFIX}.TARGET`) }}
-        <select v-model="target">
-          <option value="wecom_platform">
-            {{ t(`${I18N_PREFIX}.WECOM_PLATFORM`) }}
-          </option>
-          <option value="chatwoot">
-            {{ t(`${I18N_PREFIX}.CHATWOOT`) }}
-          </option>
-        </select>
-      </label>
-      <NextButton
-        type="submit"
-        :disabled="!isTimeoutValid || isSaving"
-        :is-loading="isSaving"
+      <fieldset
+        :disabled="disabled"
+        class="flex flex-col gap-4 border-0 p-0 m-0 disabled:opacity-50"
       >
-        {{ t(`${I18N_PREFIX}.SAVE`) }}
-      </NextButton>
+        <p class="text-n-slate-11">
+          {{
+            t(
+              'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.REQUIRED_NOTICE'
+            )
+          }}
+        </p>
+        <label>
+          {{
+            t(
+              'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.TIMEOUT_RANGE'
+            )
+          }}
+          <input
+            v-model.number="timeoutSeconds"
+            type="number"
+            :min="MIN_TIMEOUT_SECONDS"
+            :max="MAX_TIMEOUT_SECONDS"
+            step="1"
+            required
+          />
+        </label>
+        <NextButton
+          type="submit"
+          :disabled="!isTimeoutValid || isSaving"
+          :is-loading="isSaving"
+        >
+          {{
+            t(
+              'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.BOT_FALLBACK.SAVE'
+            )
+          }}
+        </NextButton>
+      </fieldset>
     </form>
   </SettingsFieldSection>
 </template>

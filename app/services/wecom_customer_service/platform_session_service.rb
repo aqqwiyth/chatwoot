@@ -1,6 +1,6 @@
 class WecomCustomerService::PlatformSessionService
   REFRESH_INTERVAL = 10.minutes
-  SESSION_CHANGE_STATES = { 1 => 3, 2 => 2, 3 => 4, 4 => 3 }.freeze
+  SESSION_CHANGE_STATES = { 1 => 3, 2 => 3, 3 => 4, 4 => 3 }.freeze
   UNCHECKED_OBSERVATION = Object.new.freeze
 
   def initialize(channel:, external_userid:)
@@ -45,13 +45,18 @@ class WecomCustomerService::PlatformSessionService
   def observe_message(message)
     event = message['event'].to_h
     service_state = SESSION_CHANGE_STATES[event['change_type'].to_i] if event['event_type'] == 'session_status_change'
-    if service_state
+    if service_state && (service_state == 4 || event['new_servicer_userid'].present?)
       timestamp = message['send_time'].to_i
-      return write(service_state: service_state, servicer_userid: event['servicer_userid'], source: 'event',
-                   observed_at: timestamp.positive? ? Time.zone.at(timestamp) : Time.current)
+      observed_at = timestamp.positive? ? Time.zone.at(timestamp) : Time.current
+      if session.observed_at.present? && session.observed_at > observed_at
+        enqueue_refresh(force: true)
+        return session
+      end
+
+      return write(service_state: service_state, servicer_userid: event['new_servicer_userid'], source: 'event', observed_at: observed_at)
     end
 
-    force_refresh = event['event_type'] == 'enter_session' || (session.service_state == 4 && message['origin'].to_i == 3)
+    force_refresh = service_state.present? || event['event_type'] == 'enter_session' || (session.service_state == 4 && message['origin'].to_i == 3)
     enqueue_refresh(force: force_refresh)
     session
   end
@@ -68,8 +73,8 @@ class WecomCustomerService::PlatformSessionService
 
   def payload
     session.attributes.symbolize_keys.slice(:service_state, :servicer_userid, :source, :observed_at, :next_refresh_at)
-      .merge(provider: 'wecom_customer_service', channel_id: @channel.id, open_kfid: @channel.open_kfid, external_userid: @external_userid,
-             stale: session.observed_at.nil? || session.observed_at <= Time.current - REFRESH_INTERVAL)
+           .merge(provider: 'wecom_customer_service', channel_id: @channel.id, open_kfid: @channel.open_kfid, external_userid: @external_userid,
+                  stale: session.observed_at.nil? || session.observed_at <= Time.current - REFRESH_INTERVAL)
   end
 
   private

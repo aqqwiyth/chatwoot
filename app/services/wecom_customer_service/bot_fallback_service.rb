@@ -1,6 +1,5 @@
 class WecomCustomerService::BotFallbackService
   KEY = 'wecom_bot_fallback'.freeze
-  POLL_INTERVAL = 3.minutes
   PLATFORM_REPLY_STATES = [0, 1].freeze
 
   def self.platform_service_state(conversation)
@@ -10,7 +9,14 @@ class WecomCustomerService::BotFallbackService
   end
 
   def self.platform_reply_allowed?(conversation)
-    PLATFORM_REPLY_STATES.include?(platform_service_state(conversation))
+    state = platform_service_state(conversation)
+    if state.nil?
+      channel = conversation.inbox.channel
+      state = WecomCustomerService::PlatformSessionService.new(
+        channel: channel, external_userid: conversation.contact_inbox.source_id
+      ).refresh.service_state
+    end
+    PLATFORM_REPLY_STATES.include?(state)
   end
 
   def self.cancel_waiting(conversation)
@@ -32,7 +38,8 @@ class WecomCustomerService::BotFallbackService
     conversation.reload if conversation.changed?
     conversation.with_lock do
       channel = message.inbox.channel.reload
-      return unless channel.bot_fallback_enabled? && current_bot_id(message.inbox) == agent_bot.id
+      return unless current_bot_id(message.inbox) == agent_bot.id
+      return unless channel.human_reception_enabled?
 
       # Delivery never waits for a synchronous API lookup. Only a confirmed human/ended state stops
       # reception here; an unknown state (new session whose platform refresh has not landed yet)
@@ -93,9 +100,9 @@ class WecomCustomerService::BotFallbackService
   def self.reply_allowed?(message)
     return false unless platform_reply_allowed?(message.conversation)
     return true unless message.sender_type == 'AgentBot'
+    return true unless message.inbox.channel.reload.human_reception_enabled?
 
     state = message.conversation.reload.extensions.to_h.fetch(KEY, {})
-    return true unless message.inbox.channel.reload.bot_fallback_enabled? || state['stopped']
     return false unless current_bot_id(message.inbox) == message.sender_id
     return false if state['stopped']
     return true if state['token'].blank?
@@ -112,7 +119,9 @@ class WecomCustomerService::BotFallbackService
       state = conversation.extensions.to_h.fetch(KEY, {})
       return unless state['status'] == 'waiting'
       return unless reply_allowed?(message)
-      return if message.sender_type == 'AgentBot' && message.extensions.to_h.dig(KEY, 'token') != state['token']
+
+      reply_token = message.extensions.to_h.dig(KEY, 'token')
+      return if message.sender_type == 'AgentBot' && reply_token.present? && reply_token != state['token']
 
       incoming_created_at = state['message_created_at'].presence || conversation.messages.find(state.fetch('message_id')).created_at.iso8601(6)
       return if message.created_at < Time.iso8601(incoming_created_at)
@@ -133,7 +142,7 @@ class WecomCustomerService::BotFallbackService
       end
 
       channel = message.inbox.channel.reload
-      if channel.bot_fallback_enabled? && context['token'].present? && state['token'] == context['token'] &&
+      if channel.human_reception_enabled? && context['token'].present? && state['token'] == context['token'] &&
          state['bot_id'] == context['bot_id'] && current_bot_id(message.inbox) == context['bot_id'] && state['status'] == 'waiting'
         WecomCustomerService::BotFallbackJob.perform_later(message.conversation_id, context['token'], 'delivery_error')
       end
@@ -146,11 +155,7 @@ class WecomCustomerService::BotFallbackService
     claimed = claim(conversation, token, reason, poll_token)
     return unless claimed
 
-    result = if claimed['target'] == 'wecom_platform'
-               WecomCustomerService::HandoffService.new(conversation: conversation).perform
-             else
-               { handoff_status: 'transferred' }
-             end
+    result = WecomCustomerService::HandoffService.new(conversation: conversation).perform
     finish(conversation, token, claimed, result)
   rescue StandardError => e
     if claimed
@@ -169,10 +174,12 @@ class WecomCustomerService::BotFallbackService
       state = conversation.extensions.to_h.fetch(KEY, {})
       channel = conversation.inbox.channel.reload
       return unless state['token'] == token && eligible_trigger?(state, reason, poll_token)
-      return unless channel.bot_fallback_enabled? && current_bot_id(conversation.inbox) == state['bot_id']
+      return unless current_bot_id(conversation.inbox) == state['bot_id']
+      return unless channel.human_reception_enabled?
       return if conversation.resolved? || conversation.snoozed?
       return if state['status'] == 'waiting' && !conversation.pending?
-      # Once handoff has started, state 2 is its queue: polls and failed/processing retries must continue.
+
+      # A queued or transferred session no longer accepts bot replies.
       if state['status'] == 'waiting' && !platform_reply_allowed?(conversation)
         cancel_waiting(conversation)
         return
@@ -180,11 +187,10 @@ class WecomCustomerService::BotFallbackService
 
       claimed = state.except('error', 'next_poll_at').merge(
         'stopped' => true, 'stopped_at' => Time.current.iso8601(6), 'status' => 'processing',
-        'target' => state['target'] || channel.bot_fallback_target,
+        'target' => 'wecom_platform',
         'reason' => state['reason'] || reason, 'trigger_reason' => reason, 'poll_token' => poll_token
       )
       write(conversation, claimed)
-      conversation.bot_handoff! if conversation.pending?
       claimed
     end
   end
@@ -211,21 +217,15 @@ class WecomCustomerService::BotFallbackService
       return unless state['token'] == token && state['status'] == 'processing'
 
       updates = { 'status' => result.fetch(:handoff_status) }
+      updates['stopped'] = false if %w[disabled unavailable].include?(result[:handoff_status])
       updates['error'] = result[:error] if result[:error].present?
-      if result[:handoff_status] == 'queued'
-        updates.merge!('poll_token' => SecureRandom.uuid, 'next_poll_at' => (Time.current + POLL_INTERVAL).iso8601(6))
-      end
       write(conversation, state.merge(updates))
-      if updates['status'] == 'queued'
-        WecomCustomerService::BotFallbackJob.set(wait_until: Time.iso8601(updates['next_poll_at'])).perform_later(
-          conversation.id, token, 'poll', updates['poll_token']
-        )
-      end
+      content = I18n.t('conversations.activity.agent_bot.wecom_fallback',
+                       reason: claimed['reason'], target: claimed['target'], status: result[:handoff_status])
       Conversations::ActivityMessageJob.perform_later(conversation, {
-        account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
-        content: I18n.t('conversations.activity.agent_bot.wecom_fallback',
-                        reason: claimed['reason'], target: claimed['target'], status: result[:handoff_status])
-      })
+                                                        account_id: conversation.account_id, inbox_id: conversation.inbox_id,
+                                                        message_type: :activity, content: content
+                                                      })
     end
   end
 end

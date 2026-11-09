@@ -4,7 +4,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   MAX_MESSAGE_AGE = 3.minutes
   SESSION_CHANGE_LABELS = {
     1 => '接入人工客服',
-    2 => '等待接入客服',
+    2 => '转接会话',
     3 => '结束人工接待',
     4 => '重新接入会话'
   }.freeze
@@ -52,7 +52,12 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   end
 
   def process_message(channel, message)
-    return if message.fetch('send_time').to_i < MAX_MESSAGE_AGE.ago.to_i
+    WecomCustomerService::AutoCloseService.observe_customer_message(channel, message)
+    WecomCustomerService::AutoCloseService.observe_transfer(channel, message)
+    if message.fetch('send_time').to_i < MAX_MESSAGE_AGE.ago.to_i && !ended_session_event?(message) &&
+       WecomCustomerService::SatisfactionInvitationService.rating_callback(message).blank?
+      return
+    end
 
     content = message_content(message)
     media_file = download_media(channel, message)
@@ -62,12 +67,12 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       content: content,
       media_file: media_file
     ).perform
-    if webhook_forwarded?(stored_message)
-      send_fixed_event_response(channel, message, stored_message)
-    else
-      forward_and_record(channel, message, content, stored_message)
+    if message['origin'].to_i == 5 && message['msgtype'] != 'event' && message['servicer_userid'].present? && stored_message.present?
+      WecomCustomerService::AutoCloseService.schedule(stored_message, stored_message.created_at)
     end
+    send_fixed_event_response(channel, message, stored_message) if stored_message
     close_ended_session_conversation(stored_message, message)
+    forward_unassociated_event_to_agent_bot(channel, message, content) if stored_message.blank? && message['msgtype'] == 'event'
   rescue StandardError => e
     Rails.logger.error(
       '[Webhooks::WecomCustomerServiceEventsJob] Message forwarding failed for ' \
@@ -78,51 +83,45 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     media_file&.io&.close!
   end
 
-  def forward_and_record(channel, message, content, stored_message)
-    forward_message(channel, message, content, stored_message&.sender)
-    mark_webhook_forwarded(stored_message)
-    return send_fixed_event_response(channel, message, stored_message) if stored_message
-
-    forward_unassociated_event_to_agent_bot(channel, message, content) if message['msgtype'] == 'event'
-  end
-
   # change_type=3 means the WeCom session ended. The event is recorded and the configured ended
   # message is sent first, then the conversation holding it is resolved so that later messages from
   # the same customer start a new Chatwoot conversation.
   def close_ended_session_conversation(stored_message, message)
-    return if stored_message.blank? || message['msgtype'] != 'event'
-
-    event = message['event'].to_h
-    return unless event['event_type'] == SESSION_STATUS_CHANGE_EVENT
-    return unless event['change_type'].to_i == SESSION_ENDED_CHANGE_TYPE
+    return if stored_message.blank? || !ended_session_event?(message)
 
     conversation = stored_message.conversation
+    conversation.update!(extensions: conversation.extensions.to_h.merge('wecom_session_ended' => true))
     conversation.resolved! unless conversation.resolved?
   end
 
-  def webhook_forwarded?(message)
-    message.present? && message.extensions.to_h['webhook_forwarded'] == true
-  end
-
-  def mark_webhook_forwarded(message)
-    return if message.blank?
-
-    message.update!(extensions: message.extensions.to_h.merge('webhook_forwarded' => true))
+  def ended_session_event?(message)
+    message['msgtype'] == 'event' && message.dig('event', 'event_type') == SESSION_STATUS_CHANGE_EVENT &&
+      message.dig('event', 'change_type').to_i == SESSION_ENDED_CHANGE_TYPE
   end
 
   def send_fixed_event_response(channel, message, stored_message)
     event = message['event'].to_h
-    code, content = fixed_event_response(channel, event)
-    return if code.blank? || content.blank?
-
     extensions = stored_message.extensions.to_h.deep_stringify_keys
     return if extensions.dig('wecom', 'event_response_sent') == true || extensions.dig('wecom', 'event_response_error').present?
 
-    WecomCustomerService::ApiClient.new(channel: channel).send_event_response(
-      code: code,
-      content: content,
-      msgid: event_response_message_id(stored_message.external_event_id)
-    )
+    if event['event_type'] == SESSION_STATUS_CHANGE_EVENT && event['change_type'].to_i == SESSION_ENDED_CHANGE_TYPE
+      if event['msg_code'].blank?
+        Rails.logger.warn("WeCom satisfaction invitation missing event code for message=#{stored_message.id}")
+        return
+      end
+
+      WecomCustomerService::SatisfactionInvitationService.new(channel: channel, conversation: stored_message.conversation)
+                                                         .perform(code: event['msg_code'])
+    else
+      code, content = fixed_event_response(channel, event)
+      return if code.blank? || content.blank?
+
+      WecomCustomerService::ApiClient.new(channel: channel).send_event_response(
+        code: code,
+        content: content,
+        msgid: event_response_message_id(stored_message.external_event_id)
+      )
+    end
     extensions['wecom'] = extensions.fetch('wecom', {}).merge('event_response_sent' => true)
     stored_message.update!(extensions: extensions)
   rescue StandardError => e
@@ -143,12 +142,9 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   def fixed_event_response(channel, event)
     case event['event_type']
     when 'enter_session'
-      [event['welcome_code'], channel.welcome_message]
+      [event['welcome_code'], channel.inbox.greeting_enabled? ? channel.inbox.greeting_message : nil]
     when SESSION_STATUS_CHANGE_EVENT
-      content = case event['change_type'].to_i
-                when 1 then channel.session_assigned_message
-                when 3 then channel.session_ended_message
-                end
+      content = channel.session_assigned_message if event['change_type'].to_i == 1
       [event['msg_code'], content]
     else
       [nil, nil]
@@ -166,45 +162,6 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     return if media_id.blank?
 
     WecomCustomerService::ApiClient.new(channel: channel).download_media(media_id: media_id)
-  end
-
-  def forward_message(channel, message, content, contact)
-    response = HTTParty.post(
-      channel.webhook_url,
-      headers: {
-        'Content-Type' => 'application/json',
-        'X-Chatwoot-Delivery' => delivery_id(channel, message)
-      },
-      body: webhook_payload(channel, message, content, contact).to_json,
-      timeout: 10
-    )
-    raise "WeCom robot webhook returned HTTP #{response.code}" unless response.success?
-  end
-
-  def webhook_payload(channel, message, content, contact)
-    {
-      msgtype: 'text',
-      text: { content: "[企业微信客服] #{message_metadata(channel, message, contact)}\n#{content}".truncate(2048, omission: '…') },
-      event: 'wecom_sync_message',
-      origin: message['origin'].to_i,
-      content: content,
-      raw_message: message,
-      platform_session: platform_session_payload(channel, message)
-    }
-  end
-
-  def message_metadata(channel, message, contact)
-    event = message['event'].to_h
-    external_userid = message['external_userid'].presence || event['external_userid']
-    open_kfid = message['open_kfid'].presence || event['open_kfid'] || channel.open_kfid
-    media_id = message.dig(message['msgtype'], 'media_id')
-    [
-      "用户: #{external_userid}",
-      "客服账号: #{open_kfid}",
-      "消息 ID: #{message['msgid']}",
-      ("媒体 ID: #{media_id}" if media_id.present?),
-      ("头像: #{contact.avatar_url}" if contact&.avatar_url.present?)
-    ].compact.join(' | ')
   end
 
   def forward_unassociated_event_to_agent_bot(channel, message, content)
@@ -243,6 +200,9 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   end
 
   def message_content(message)
+    satisfaction = WecomCustomerService::SatisfactionInvitationService.rating_callback(message)
+    return "服务评价：#{satisfaction[:label]}" if satisfaction.present?
+
     return message.dig('text', 'content').to_s if message['msgtype'] == 'text'
     return message_content_for_type(message) unless message['msgtype'] == 'event'
 
@@ -252,7 +212,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   def event_content(event)
     event_type = event['event_type'].presence || 'unknown'
     change_type = event['change_type'].presence
-    servicer_userid = event['servicer_userid'].presence
+    servicer_userid = event['new_servicer_userid'].presence || event['servicer_userid'].presence
     details = event.except('event_type').to_json
     change_label = SESSION_CHANGE_LABELS[change_type.to_i] if change_type
     summary = ["事件: #{event_type}", ("状态: #{change_label || change_type}" if change_type),

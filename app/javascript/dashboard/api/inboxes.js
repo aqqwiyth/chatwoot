@@ -15,6 +15,23 @@ class Inboxes extends CacheEnabledApiClient {
     return axios.get(`${this.url}/${inboxId}/campaigns`);
   }
 
+  getWecomReception(inboxId) {
+    return axios.get(`${this.url}/${inboxId}/wecom_reception`);
+  }
+
+  getWecomDepartmentMembers(inboxId, departmentId) {
+    return axios.get(`${this.url}/${inboxId}/wecom_department_members`, {
+      params: { department_id: departmentId },
+    });
+  }
+
+  syncWecomServicers(inboxId, servicerUserids, servicerNames) {
+    return axios.put(`${this.url}/${inboxId}/wecom_reception_servicers`, {
+      servicer_userids: servicerUserids,
+      servicer_names: servicerNames,
+    });
+  }
+
   deleteInboxAvatar(inboxId) {
     return axios.delete(`${this.url}/${inboxId}/avatar`);
   }

@@ -9,17 +9,22 @@ class WecomCustomerService::SendOnChannelService < Base::SendOnChannelService
     @message_sent = false
     return unless WecomCustomerService::BotFallbackService.reply_allowed?(message)
 
-    api_client = WecomCustomerService::ApiClient.new(channel: channel)
-    external_userid = conversation.contact_inbox.source_id
+    begin
+      api_client = WecomCustomerService::ApiClient.new(channel: channel)
+      external_userid = conversation.contact_inbox.source_id
 
-    send_text(api_client, external_userid) if message.content.present?
-    message.attachments.each do |attachment|
-      send_attachment(api_client, external_userid, attachment)
+      send_text(api_client, external_userid) if message.content.present?
+      message.attachments.each do |attachment|
+        send_attachment(api_client, external_userid, attachment)
+      end
+      Messages::StatusUpdateService.new(message, 'delivered').perform if @message_sent
+    rescue StandardError => e
+      Rails.logger.warn "WeCom reply failed for message=#{message.id}: #{e.class}: #{e.message}"
+      Messages::StatusUpdateService.new(message, 'failed', e.message).perform
+      return
     end
-    Messages::StatusUpdateService.new(message, 'delivered').perform if @message_sent
-  rescue StandardError => e
-    Rails.logger.warn "WeCom reply failed for message=#{message.id}: #{e.class}: #{e.message}"
-    Messages::StatusUpdateService.new(message, 'failed', e.message).perform
+
+    WecomCustomerService::AutoCloseService.schedule(message, Time.current) if @message_sent && message.sender_type == 'AgentBot'
   end
 
   def invalid_message?

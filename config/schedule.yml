@@ -2,6 +2,11 @@
 # use https://crontab.guru/ to validate
 # validations for this file exist in /spec/configs/schedule_spec.rb
 
+wecom_reception_queue_job:
+  cron: '* * * * *'
+  class: 'WecomCustomerService::ReceptionQueueJob'
+  queue: scheduled_jobs
+
 wecom_refresh_platform_sessions_job:
   cron: '* * * * *'
   class: 'WecomCustomerService::RefreshPlatformSessionsJob'

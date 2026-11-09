@@ -4,11 +4,15 @@ class AgentBotListener < BaseListener
     inbox = conversation.inbox
     event_name = __method__.to_s
     payload = conversation.webhook_data.merge(event: event_name).merge(platform_session_payload(conversation))
+    payload[:wecom_auto_close] = conversation.extensions['wecom_auto_close'] if conversation.extensions.to_h['wecom_auto_close'].present?
     agent_bots_for(inbox, conversation).each { |agent_bot| process_webhook_bot_event(agent_bot, payload) }
   end
 
   def conversation_opened(event)
     conversation = extract_conversation_and_account(event)[0]
+    if conversation.extensions.to_h['wecom_auto_close'].present?
+      conversation.update!(extensions: conversation.extensions.to_h.except('wecom_auto_close'))
+    end
     inbox = conversation.inbox
     event_name = __method__.to_s
     payload = conversation.webhook_data.merge(event: event_name).merge(platform_session_payload(conversation))
@@ -101,7 +105,9 @@ class AgentBotListener < BaseListener
   end
 
   def wecom_activity?(message)
-    message.inbox.wecom_customer_service? && message.activity? && message.extensions.to_h.dig('wecom', 'raw_message').present?
+    wecom = message.extensions.to_h['wecom'].to_h
+    message.inbox.wecom_customer_service? && (message.activity? || (message.private? && wecom['satisfaction'].present?)) &&
+      wecom['raw_message'].present?
   end
 
   def platform_session_payload(conversation)

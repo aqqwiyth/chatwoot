@@ -37,6 +37,7 @@ class MessageTemplates::HookExecutionService
   end
 
   def should_send_greeting?
+    return false if inbox.wecom_customer_service?
     return false if conversation.campaign.present?
     # should not send if its a tweet message
     return false if conversation.tweet?

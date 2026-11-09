@@ -22,6 +22,8 @@ class Conversations::ResolutionJob < ApplicationJob
                    account.conversations.resolvable_all(account.auto_resolve_after)
                  end
     # Exclude orphan conversations where contact was deleted but conversation cleanup is pending
-    base_scope.where.not(contact_id: nil)
+    wecom_inboxes = Inbox.where(channel_type: 'Channel::WecomCustomerService',
+                                channel_id: Channel::WecomCustomerService.where.not(auto_close_after_minutes: 0).select(:id))
+    base_scope.where.not(contact_id: nil).where.not(inbox_id: wecom_inboxes.select(:id))
   end
 end

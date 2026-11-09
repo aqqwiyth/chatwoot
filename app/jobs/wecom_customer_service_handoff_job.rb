@@ -7,10 +7,7 @@ class WecomCustomerServiceHandoffJob < ApplicationJob
     message = Message.find(message_id)
     return unless handoff_message?(message)
 
-    result = WecomCustomerService::HandoffService.new(message: message).perform
-    return unless result[:handoff_status] == 'queued'
-
-    self.class.set(wait: WecomCustomerService::HandoffService::SERVICER_POLL_INTERVAL).perform_later(message.id)
+    WecomCustomerService::HandoffService.new(message: message).perform
   rescue StandardError => e
     mark_failed(message, e)
     raise

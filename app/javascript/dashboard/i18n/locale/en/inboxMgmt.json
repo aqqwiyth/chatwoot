@@ -1,6 +1,9 @@
 {
   "INBOX_MGMT": {
-    "SUGGESTED_QUESTIONS": { "LABEL": "Suggested questions", "HELP": "Enter one question per line, in display order. Shown when a visitor starts a new conversation." },
+    "SUGGESTED_QUESTIONS": {
+      "LABEL": "Suggested questions",
+      "HELP": "Enter one question per line, in display order. Shown when a visitor starts a new conversation."
+    },
     "HEADER": "Inboxes",
     "DESCRIPTION": "A channel is the mode of communication your customer chooses to interact with you. An inbox is where you manage interactions for a specific channel. It can include communications from various sources such as email, live chat, and social media.",
     "LEARN_MORE": "Learn more about inboxes",
@@ -562,7 +565,7 @@
       },
       "WECOM_CUSTOMER_SERVICE": {
         "TITLE": "WeChat customer service channel",
-        "DESC": "Show customer service messages in Chatwoot and forward them to a robot webhook.",
+        "DESC": "Connect a WeChat customer service channel.",
         "CHANNEL_NAME": {
           "LABEL": "Inbox Name"
         },
@@ -1085,7 +1088,7 @@
       "UPDATE_PRE_CHAT_FORM_SETTINGS": "Update Pre Chat Form Settings",
       "WECOM_CUSTOMER_SERVICE": {
         "TITLE": "WeChat customer service configuration",
-        "DESCRIPTION": "Customer messages appear in Chatwoot and are also forwarded to the robot webhook.",
+        "DESCRIPTION": "Manage the WeChat customer service connection.",
         "WEBHOOK_URL": "Robot webhook URL",
         "OPEN_KFID": "OpenKfId",
         "SECRET": "Message reading secret",
@@ -1099,19 +1102,73 @@
         "SUCCESS": "WeChat customer service configuration updated",
         "ERROR": "Unable to update WeChat customer service configuration",
         "CALLBACK_URL": "Callback URL",
+        "RECEPTION": {
+          "TITLE": "Human reception",
+          "DESCRIPTION": "Configure transfers to WeChat customer service agents.",
+          "ENABLE": "Enable human reception",
+          "QUEUE": "Enable reception queue",
+          "QUEUE_DESCRIPTION": "When agents are unavailable or outside reception hours, customers wait in the platform queue. When disabled, they receive the outside-hours message instead.",
+          "AUTO_ASSIGNMENT": "Automatic distribution is always enabled when human reception is enabled.",
+          "HOURS_HELP": "Configure reception hours and time zone in the Business Hours tab. When business hours are disabled, reception is available at all times.",
+          "OUTSIDE_MESSAGE": "Outside reception hours message",
+          "BUSY_MESSAGE": "No agents available message",
+          "SAVE": "Save reception settings",
+          "SUCCESS": "Reception settings updated",
+          "ERROR": "Unable to update reception settings",
+          "SERVICERS": "Platform reception agents",
+          "SERVICERS_HELP": "Load the enterprise directory, select individual members and sync them to this customer service account. The WeChat customer service application must be allowed to view those departments.",
+          "LOAD_DIRECTORY": "Load enterprise directory and current agents",
+          "DIRECTORY_ERROR": "Unable to load the enterprise directory or reception agents",
+          "DEPARTMENT": "Department",
+          "SELECT_DEPARTMENT": "Choose a department",
+          "SELECTED": "Selected agents",
+          "REMOVE": "Remove",
+          "SYNC": "Sync agents to WeChat",
+          "SYNC_SUCCESS": "Reception agents synced",
+          "SYNC_ERROR": "Unable to sync reception agents. Refresh the list to see changes already applied.",
+          "PLATFORM_DEPARTMENTS": "Departments configured directly on the platform remain unchanged: {ids}. Select individual agents here to include them in automatic distribution.",
+          "MAX_CONCURRENT": "Maximum concurrent conversations per agent",
+          "AUTO_QUEUE": "Automatically assign queued conversations",
+          "AUTO_QUEUE_HELP": "During business hours, periodically assign queued conversations to available agents below their capacity limit.",
+          "QUEUE_HELP": "When agents are busy or outside business hours, place customers in the queue. Agents can transfer them during business hours.",
+          "OUTSIDE_HELP": "Sent outside business hours.",
+          "BUSY_HELP": "Sent during business hours when no agents are available, all agents are busy, or the agent capacity is reached."
+        },
         "BOT_FALLBACK": {
           "TITLE": "Bot fallback",
-          "DESCRIPTION": "Choose where to transfer a conversation when the bot does not respond within the timeout.",
+          "DESCRIPTION": "Transfer to human reception when the bot does not respond within the timeout. Reception hours and queue settings apply.",
           "ENABLE": "Enable bot fallback",
           "BOT_NOTICE": "Requires an enabled inbox bot. Before enabling fallback, configure the bot to return the delivery token with each reply so successful replies cancel the timeout.",
           "TIMEOUT": "Response timeout in seconds (1–3600)",
-          "TARGET": "Fallback target",
-          "WECOM_PLATFORM": "WeChat customer service platform",
-          "CHATWOOT": "Inbox agents",
           "SAVE": "Save bot fallback settings",
           "SUCCESS": "Bot fallback settings updated",
-          "ERROR": "Unable to update bot fallback settings"
-        }
+          "ERROR": "Unable to update bot fallback settings",
+          "TIMEOUT_RANGE": "Bot response timeout in seconds (60–300)",
+          "REQUIRED_NOTICE": "Bot timeout transfer is enabled when human reception is enabled."
+        },
+        "AUTO_CLOSE": {
+          "TITLE": "Automatically end conversations",
+          "DESCRIPTION": "End an active human-agent session when the customer has not replied after the agent’s reply. Bot-only and queued sessions are not automatically ended.",
+          "TIMEOUT": "Customer response timeout",
+          "DISABLED": "Do not automatically end",
+          "MINUTES": "{count} minutes",
+          "HOUR": "1 hour",
+          "HOURS": "{count} hours",
+          "SAVE": "Save automatic closing settings",
+          "SUCCESS": "Automatic closing settings updated",
+          "ERROR": "Unable to update automatic closing settings",
+          "AGENT_TIMEOUT": "Agent response timeout after transfer or queue",
+          "AGENT_NOTICE": "This setting is saved for future use and does not trigger any action yet.",
+          "AGENT_DISABLED": "Not set",
+          "INVITATION": "Enable satisfaction invitations",
+          "INVITATION_HELP": "When enabled, a rating menu is sent when the conversation ends. Satisfaction options are preset to satisfied, neutral, and dissatisfied.",
+          "INVITATION_MESSAGE": "Rating message",
+          "INVITATION_LIMIT": "Maximum 1024 bytes."
+        },
+        "TAB_WELCOME": "Welcome message",
+        "TAB_RECEPTION": "Human reception",
+        "TAB_END": "Automatic conversation closure",
+        "TAB_SYSTEM": "System settings"
       }
     },
     "HELP_CENTER": {

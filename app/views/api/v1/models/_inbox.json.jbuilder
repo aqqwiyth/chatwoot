@@ -132,14 +132,23 @@ json.callback_webhook_url resource.channel.callback_webhook_url if resource.grou
 if resource.wecom_customer_service?
   json.inbox_identifier resource.channel.try(:identifier)
   json.open_kfid resource.channel.try(:open_kfid)
-  json.webhook_url resource.channel.try(:webhook_url)
   json.corp_id resource.channel.try(:corp_id)
   json.welcome_message resource.channel.try(:welcome_message)
   json.session_assigned_message resource.channel.try(:session_assigned_message)
   json.session_ended_message resource.channel.try(:session_ended_message)
-  json.bot_fallback_enabled resource.channel.bot_fallback_enabled
+  json.auto_close_after_minutes resource.channel.auto_close_after_minutes
+  json.agent_response_timeout_minutes resource.channel.agent_response_timeout_minutes
+  json.bot_fallback_enabled resource.channel.human_reception_enabled
   json.bot_fallback_timeout_seconds resource.channel.bot_fallback_timeout_seconds
-  json.bot_fallback_target resource.channel.bot_fallback_target
+  json.bot_fallback_target 'wecom_platform'
+  json.human_reception_enabled resource.channel.human_reception_enabled
+  json.reception_queue_enabled resource.channel.reception_queue_enabled
+  json.reception_queue_auto_assign resource.channel.reception_queue_auto_assign
+  json.max_concurrent_receptions resource.channel.max_concurrent_receptions
+  json.satisfaction_invitation_enabled resource.channel.satisfaction_invitation_enabled
+  json.satisfaction_invitation_message resource.channel.satisfaction_invitation_message
+  json.outside_reception_hours_message resource.channel.outside_reception_hours_message
+  json.reception_busy_message resource.channel.reception_busy_message
   if Current.account_user&.administrator?
     json.secret resource.channel.try(:secret)
     json.callback_token resource.channel.try(:callback_token)

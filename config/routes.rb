@@ -293,6 +293,9 @@ Rails.application.routes.draw do
           resources :inboxes, only: [:index, :show, :create, :update, :destroy] do
             get :assignable_agents, on: :member
             get :campaigns, on: :member
+            get :wecom_reception, to: 'wecom_reception#show', on: :member
+            get :wecom_department_members, to: 'wecom_reception#members', on: :member
+            put :wecom_reception_servicers, to: 'wecom_reception#update', on: :member
             get :agent_bot, on: :member
             get :message_templates, on: :member
             post :set_agent_bot, on: :member

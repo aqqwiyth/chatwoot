@@ -24,7 +24,7 @@ class CsatSurveyService
   end
 
   def conversation_allows_csat?
-    conversation.resolved? && !conversation.tweet?
+    conversation.resolved? && !conversation.tweet? && !(inbox.wecom_customer_service? && conversation.extensions.to_h['wecom_session_ended'])
   end
 
   def csat_enabled?

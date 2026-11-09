@@ -7,7 +7,7 @@ class WecomCustomerService::InboundMessageService
   end
 
   def perform
-    if external_userid.present?
+    if external_userid.present? && satisfaction_callback.blank?
       WecomCustomerService::PlatformSessionService.new(channel: @channel, external_userid: external_userid).observe_message(@message)
     end
     existing_message || create_message
@@ -26,13 +26,15 @@ class WecomCustomerService::InboundMessageService
   def create_message
     return if external_userid.blank?
 
-    contact_inbox = ContactInboxWithContactBuilder.new(
-      source_id: external_userid,
-      inbox: inbox,
-      contact_attributes: contact_attributes
-    ).perform
+    contact_inbox = find_contact_inbox
+    return if contact_inbox.blank?
 
-    conversation = find_or_create_conversation(contact_inbox)
+    conversation = WecomCustomerService::ConversationResolver.new(
+      inbox: inbox, contact_inbox: contact_inbox, ended_event: ended_session_event?,
+      event_time: message_created_at, satisfaction: satisfaction_callback
+    ).perform
+    return if conversation.blank?
+
     message = build_message(conversation, contact_inbox)
     attach_media(message)
     message.save!
@@ -44,6 +46,7 @@ class WecomCustomerService::InboundMessageService
       account_id: inbox.account_id,
       inbox_id: inbox.id,
       message_type: message_type,
+      private: satisfaction_callback.present?,
       status: message_status,
       sender: message_sender(contact_inbox),
       content: @content,
@@ -55,20 +58,22 @@ class WecomCustomerService::InboundMessageService
     )
   end
 
-  def find_or_create_conversation(contact_inbox)
-    conversation = if inbox.lock_to_single_conversation
-                     contact_inbox.conversations.order(created_at: :desc).first
-                   else
-                     contact_inbox.conversations.where.not(status: :resolved).order(created_at: :desc).first
-                   end
-    return conversation if conversation
+  def find_contact_inbox
+    if ended_session_event? || satisfaction_callback.present?
+      existing = inbox.contact_inboxes.find_by(source_id: external_userid)
+      return existing if existing.present? || satisfaction_callback.present?
+    end
 
-    contact_inbox.conversations.create!(
-      account_id: inbox.account_id,
-      inbox_id: inbox.id,
-      contact_id: contact_inbox.contact_id,
-      contact_inbox_id: contact_inbox.id
-    )
+    ContactInboxWithContactBuilder.new(
+      source_id: external_userid,
+      inbox: inbox,
+      contact_attributes: contact_attributes
+    ).perform
+  end
+
+  def ended_session_event?
+    @message['msgtype'] == 'event' && @message.dig('event', 'event_type') == 'session_status_change' &&
+      @message.dig('event', 'change_type').to_i == 3
   end
 
   def contact_attributes
@@ -87,6 +92,7 @@ class WecomCustomerService::InboundMessageService
 
   def message_type
     return :activity if event_message?
+    return :outgoing if satisfaction_callback.present?
 
     outgoing_service_message? ? :outgoing : :incoming
   end
@@ -96,7 +102,7 @@ class WecomCustomerService::InboundMessageService
   end
 
   def message_sender(contact_inbox)
-    return nil if event_message? || outgoing_service_message?
+    return nil if event_message? || outgoing_service_message? || satisfaction_callback.present?
 
     contact_inbox.contact
   end
@@ -105,13 +111,11 @@ class WecomCustomerService::InboundMessageService
     outgoing_service_message? ? { 'external_echo' => true } : {}
   end
 
-  def outgoing_service_message?
-    @message['origin'].to_i == 5
-  end
+  def outgoing_service_message? = @message['origin'].to_i == 5
 
-  def event_message?
-    @message['msgtype'] == 'event'
-  end
+  def event_message? = @message['msgtype'] == 'event'
+
+  def satisfaction_callback = @satisfaction_callback ||= WecomCustomerService::SatisfactionInvitationService.rating_callback(@message)
 
   def customer_details
     @customer_details ||= begin
@@ -121,8 +125,9 @@ class WecomCustomerService::InboundMessageService
   end
 
   def message_extensions
-    extensions = { 'provider' => 'wecom_customer_service', 'wecom' => wecom_message_extensions, 'webhook_forwarded' => false }
+    extensions = { 'provider' => 'wecom_customer_service', 'wecom' => wecom_message_extensions }
     extensions['wecom']['event_type'] = @message.dig('event', 'event_type') if @message['msgtype'] == 'event'
+    extensions['wecom']['satisfaction'] = satisfaction_callback if satisfaction_callback.present?
 
     add_event_actor(extensions) if event_message?
 

@@ -68,6 +68,42 @@ class WecomCustomerService::ApiClient
     api_payload(response, 'kf/servicer/list')
   end
 
+  def list_departments
+    response = HTTParty.get(
+      "#{API_BASE_URL}/department/list",
+      query: { access_token: access_token },
+      timeout: 10
+    )
+    api_payload(response, 'department/list')
+  end
+
+  def list_department_members(department_id:)
+    response = HTTParty.get(
+      "#{API_BASE_URL}/user/simplelist",
+      query: { access_token: access_token, department_id: department_id },
+      timeout: 10
+    )
+    api_payload(response, 'user/simplelist')
+  end
+
+  def change_servicers(operation:, userids:)
+    response = HTTParty.post(
+      "#{API_BASE_URL}/kf/servicer/#{operation}",
+      query: { access_token: access_token },
+      headers: { 'Content-Type' => 'application/json' },
+      body: { open_kfid: @channel.open_kfid, userid_list: userids }.to_json,
+      timeout: 10
+    )
+    payload = api_payload(response, "kf/servicer/#{operation}")
+    failure = payload.fetch('result_list').find { |result| result.fetch('errcode').to_i != 0 }
+    if failure
+      raise WecomCustomerService::ApiError.new(operation: "kf/servicer/#{operation}", errcode: failure['errcode'],
+                                               errmsg: "#{failure['userid']}: #{failure['errmsg']}")
+    end
+
+    payload
+  end
+
   def transfer_service_state(external_userid:, service_state:, servicer_userid: nil)
     response = HTTParty.post(
       "#{API_BASE_URL}/kf/service_state/trans",
@@ -85,13 +121,14 @@ class WecomCustomerService::ApiClient
     api_payload(response, 'kf/service_state/trans')
   end
 
-  def send_text(external_userid:, content:)
+  def send_text(external_userid:, content:, msgid: nil)
     send_message(
       external_userid: external_userid,
       payload: {
         msgtype: 'text',
-        text: { content: content.to_s.truncate(2048, omission: '…') }
-      }
+        text: { content: content.to_s.truncate(2048, omission: '…') },
+        msgid: msgid
+      }.compact
     )
   end
 
@@ -103,21 +140,25 @@ class WecomCustomerService::ApiClient
   end
 
   def send_event_response(code:, content:, msgid: nil)
+    send_event_payload(code: code, msgid: msgid, msgtype: 'text', text: { content: content.to_s.truncate(2048, omission: '…') })
+  end
+
+  def send_event_menu_response(code:, menu:, msgid: nil)
+    send_event_payload(code: code, msgid: msgid, msgtype: 'msgmenu', msgmenu: menu)
+  end
+
+  def send_event_payload(**payload)
     response = HTTParty.post(
       "#{API_BASE_URL}/kf/send_msg_on_event",
       query: { access_token: access_token },
       headers: { 'Content-Type' => 'application/json' },
-      body: {
-        code: code,
-        msgid: msgid,
-        msgtype: 'text',
-        text: { content: content.to_s.truncate(2048, omission: '…') }
-      }.compact.to_json,
+      body: payload.compact.to_json,
       timeout: 10
     )
 
     api_payload(response, 'send_msg_on_event')
   end
+  private :send_event_payload
 
   def download_media(media_id:)
     response = HTTParty.get(
