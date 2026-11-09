@@ -127,7 +127,10 @@ class WecomCustomerService::InboundMessageService
   def message_extensions
     extensions = { 'provider' => 'wecom_customer_service', 'wecom' => wecom_message_extensions }
     extensions['wecom']['event_type'] = @message.dig('event', 'event_type') if @message['msgtype'] == 'event'
-    extensions['wecom']['satisfaction'] = satisfaction_callback if satisfaction_callback.present?
+    if satisfaction_callback.present?
+      extensions['message_kind'] = 'satisfaction'
+      extensions['wecom']['satisfaction'] = satisfaction_callback
+    end
 
     add_event_actor(extensions) if event_message?
 

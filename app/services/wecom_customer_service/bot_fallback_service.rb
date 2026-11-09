@@ -114,6 +114,8 @@ class WecomCustomerService::BotFallbackService
   end
 
   def self.reply_sent(message)
+    return if message.template? || message.content_attributes.to_h['automation_rule_id'].present?
+
     conversation = message.conversation
     conversation.with_lock do
       state = conversation.extensions.to_h.fetch(KEY, {})

@@ -16,8 +16,8 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 const DEFAULT_TIMEZONE = {
-  label: 'Pacific Time (US & Canada) (GMT-07:00)',
-  value: 'America/Los_Angeles',
+  label: 'Beijing (GMT+08:00)',
+  value: 'Asia/Shanghai',
 };
 
 export default {
@@ -106,7 +106,9 @@ export default {
       this.unavailableMessage = unavailableMessage || '';
       this.timeSlots = slots;
       this.timeZone =
-        this.timeZones.find(item => timeZone === item.value) ||
+        this.timeZones.find(
+          item => (timeZone === 'UTC' ? 'Etc/UTC' : timeZone) === item.value
+        ) ||
         DEFAULT_TIMEZONE;
     },
     onSlotUpdate(slotIndex, slotData) {
