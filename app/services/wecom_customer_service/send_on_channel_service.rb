@@ -24,7 +24,9 @@ class WecomCustomerService::SendOnChannelService < Base::SendOnChannelService
       return
     end
 
-    WecomCustomerService::AutoCloseService.schedule(message, Time.current) if @message_sent && message.sender_type == 'AgentBot'
+    if @message_sent && WecomCustomerService::AutoCloseService.ai_reply?(message)
+      WecomCustomerService::AutoCloseService.schedule(message, Time.current)
+    end
   end
 
   def invalid_message?

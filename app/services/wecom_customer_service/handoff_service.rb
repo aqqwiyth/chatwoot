@@ -40,16 +40,21 @@ class WecomCustomerService::HandoffService
       return { handoff_status: 'not_queued' }
     end
 
+    handoff_started_at = Time.current
     result = transfer_if_needed(api_client, external_userid, state)
     transition_conversation_to_human if %w[queued transferred].include?(result[:handoff_status])
     session = WecomCustomerService::PlatformSessionService.new(channel: @channel, external_userid: external_userid).write(
       service_state: result.fetch(:service_state), servicer_userid: result[:servicer_userid], source: 'handoff'
     )
     status = result.delete(:handoff_status) || 'transferred'
+    if %w[queued transferred].include?(status) && state.fetch('service_state').to_i != result[:service_state]
+      WecomCustomerService::AutoCloseService.clear_before(session, handoff_started_at)
+    elsif status == 'unavailable'
+      WecomCustomerService::AutoCloseService.clear_before(session, handoff_started_at, ai_only: true)
+    end
     update_handoff(status: status, **result)
     send_event_response(api_client, result)
     send_unavailable_response(api_client, external_userid, @conversation.inbox.out_of_office?) if status == 'unavailable'
-    WecomCustomerService::AutoCloseService.resume_bot_reply(@channel, session) if result[:service_state] == HUMAN_SERVICE_STATE
     result.merge(handoff_status: status)
   end
 
