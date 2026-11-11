@@ -86,6 +86,15 @@ class WecomCustomerService::ApiClient
     api_payload(response, 'user/simplelist')
   end
 
+  def get_user(userid:)
+    response = HTTParty.get(
+      "#{API_BASE_URL}/user/get",
+      query: { access_token: access_token, userid: userid },
+      timeout: 10
+    )
+    api_payload(response, 'user/get')
+  end
+
   def change_servicers(operation:, userids:)
     response = HTTParty.post(
       "#{API_BASE_URL}/kf/servicer/#{operation}",

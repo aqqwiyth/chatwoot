@@ -16,7 +16,7 @@ class WecomCustomerService::SatisfactionInvitationService
     @conversation = conversation
   end
 
-  def perform(code:)
+  def perform(code:, servicer_userid: nil)
     return unless @channel.satisfaction_invitation_enabled?
 
     if code.blank?
@@ -33,7 +33,9 @@ class WecomCustomerService::SatisfactionInvitationService
         msgid: "cw_#{Digest::SHA256.hexdigest("wecom_survey:#{@channel.id}:#{@conversation.id}")[0, 24]}",
         menu: menu
       )
-      @conversation.update!(extensions: extensions.merge('wecom_satisfaction_invitation' => { 'sent' => true }))
+      invitation = { 'sent' => true }
+      invitation['servicer_userid'] = servicer_userid.presence if servicer_userid.present?
+      @conversation.update!(extensions: extensions.merge('wecom_satisfaction_invitation' => invitation))
     end
   end
 

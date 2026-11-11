@@ -139,6 +139,7 @@ const syncServicers = async () => {
     selected.value = data.servicers
       .filter(item => item.userid)
       .map(item => item.userid);
+    selectedNames.value = { ...selectedNames.value, ...data.servicer_names };
     useAlert(
       t(
         'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.RECEPTION.SYNC_SUCCESS'

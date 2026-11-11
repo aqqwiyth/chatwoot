@@ -74,10 +74,17 @@ class WecomCustomerService::PlatformSessionService
   def payload
     session.attributes.symbolize_keys.slice(:service_state, :servicer_userid, :source, :observed_at, :next_refresh_at)
            .merge(provider: 'wecom_customer_service', channel_id: @channel.id, open_kfid: @channel.open_kfid, external_userid: @external_userid,
+                  servicer_display_name: servicer_display_name,
                   stale: session.observed_at.nil? || session.observed_at <= Time.current - REFRESH_INTERVAL)
   end
 
   private
+
+  def servicer_display_name
+    return if session.servicer_userid.blank?
+
+    @channel.reception_servicer_names[session.servicer_userid].presence || session.servicer_userid
+  end
 
   def fetch_service_state
     WecomCustomerService::ApiClient.new(channel: @channel).get_service_state(external_userid: @external_userid)

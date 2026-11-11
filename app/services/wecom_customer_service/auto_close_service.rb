@@ -80,7 +80,7 @@ class WecomCustomerService::AutoCloseService
     if [1, 3].include?(service_state)
       session.update!(auto_close_attempted_at: Time.current)
       response = client.transfer_service_state(external_userid: conversation.contact_inbox.source_id, service_state: 4)
-      send_ending(channel, conversation, response['msg_code'])
+      send_ending(channel, conversation, response['msg_code'], servicer_userid: state['servicer_userid'])
     end
     session_service.write(service_state: 4, source: 'auto_close')
     conversation.update!(extensions: conversation.extensions.to_h.merge('wecom_session_ended' => true, 'wecom_auto_close' => {
@@ -90,8 +90,9 @@ class WecomCustomerService::AutoCloseService
     conversation.resolved!
   end
 
-  def self.send_ending(channel, conversation, code)
-    WecomCustomerService::SatisfactionInvitationService.new(channel: channel, conversation: conversation).perform(code: code)
+  def self.send_ending(channel, conversation, code, servicer_userid: nil)
+    WecomCustomerService::SatisfactionInvitationService.new(channel: channel, conversation: conversation)
+                                                       .perform(code: code, servicer_userid: servicer_userid)
   rescue StandardError => e
     Rails.logger.warn("[WecomCustomerService::AutoCloseService] Ending message failed: #{e.class}: #{e.message}")
   end

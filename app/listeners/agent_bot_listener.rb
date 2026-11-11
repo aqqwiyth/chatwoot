@@ -93,7 +93,8 @@ class AgentBotListener < BaseListener
         source: 'wecom_customer_service',
         origin: wecom['origin'],
         content: message.content,
-        raw_message: wecom['raw_message']
+        raw_message: wecom['raw_message'],
+        contact: wecom_contact_payload(message)
       )
     end
     payload.merge!(platform_session_payload(message.conversation))
@@ -117,6 +118,18 @@ class AgentBotListener < BaseListener
       channel: conversation.inbox.channel, external_userid: conversation.contact_inbox.source_id
     )
     { platform_session: service.payload }
+  end
+
+  # The customer is not the message sender for outgoing echoes, so expose it as a top-level
+  # block that is present for every WeCom message in both directions.
+  def wecom_contact_payload(message)
+    contact = message.conversation.contact
+    {
+      id: contact.id,
+      name: contact.name,
+      external_userid: message.conversation.contact_inbox.source_id,
+      identifier: contact.identifier
+    }
   end
 
   def process_webhook_bot_event(agent_bot, payload)

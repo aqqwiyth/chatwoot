@@ -59,7 +59,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       return
     end
 
-    content = message_content(message)
+    content = message_content(channel, message)
     media_file = download_media(channel, message)
     stored_message = WecomCustomerService::InboundMessageService.new(
       channel: channel,
@@ -111,7 +111,8 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
       end
 
       WecomCustomerService::SatisfactionInvitationService.new(channel: channel, conversation: stored_message.conversation)
-                                                         .perform(code: event['msg_code'])
+                                                         .perform(code: event['msg_code'],
+                                                                  servicer_userid: event['old_servicer_userid'])
     else
       code, content = fixed_event_response(channel, event)
       return if code.blank? || content.blank?
@@ -199,25 +200,31 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     Digest::SHA256.hexdigest("wecom:#{channel.id}:#{message_id}")
   end
 
-  def message_content(message)
+  def message_content(channel, message)
     satisfaction = WecomCustomerService::SatisfactionInvitationService.rating_callback(message)
     return "服务评价：#{satisfaction[:label]}" if satisfaction.present?
 
     return message.dig('text', 'content').to_s if message['msgtype'] == 'text'
     return message_content_for_type(message) unless message['msgtype'] == 'event'
 
-    event_content(message['event'].to_h)
+    event_content(channel, message['event'].to_h)
   end
 
-  def event_content(event)
+  def event_content(channel, event)
     event_type = event['event_type'].presence || 'unknown'
     change_type = event['change_type'].presence
-    servicer_userid = event['new_servicer_userid'].presence || event['servicer_userid'].presence
+    servicer_userid = event['servicer_userid'].presence ||
+                      event['new_servicer_userid'].presence ||
+                      event['old_servicer_userid'].presence
     details = event.except('event_type').to_json
     change_label = SESSION_CHANGE_LABELS[change_type.to_i] if change_type
     summary = ["事件: #{event_type}", ("状态: #{change_label || change_type}" if change_type),
-               ("客服坐席: #{servicer_userid}" if servicer_userid)].compact.join(' | ')
+               ("客服坐席: #{servicer_label(channel, servicer_userid)}" if servicer_userid)].compact.join(' | ')
     [summary, details].join("\n")
+  end
+
+  def servicer_label(channel, servicer_userid)
+    channel.reception_servicer_names[servicer_userid].presence || servicer_userid
   end
 
   def message_content_for_type(message)

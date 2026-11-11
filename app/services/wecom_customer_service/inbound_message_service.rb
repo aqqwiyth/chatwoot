@@ -53,7 +53,7 @@ class WecomCustomerService::InboundMessageService
       source_id: message_id,
       external_event_id: external_event_id,
       content_attributes: content_attributes,
-      extensions: message_extensions,
+      extensions: message_extensions(conversation),
       created_at: message_created_at
     )
   end
@@ -124,12 +124,11 @@ class WecomCustomerService::InboundMessageService
     end
   end
 
-  def message_extensions
+  def message_extensions(conversation)
     extensions = { 'provider' => 'wecom_customer_service', 'wecom' => wecom_message_extensions }
     extensions['wecom']['event_type'] = @message.dig('event', 'event_type') if @message['msgtype'] == 'event'
     if satisfaction_callback.present?
-      extensions['message_kind'] = 'satisfaction'
-      extensions['wecom']['satisfaction'] = satisfaction_callback
+      add_satisfaction_extensions(extensions, conversation)
     end
 
     add_event_actor(extensions) if event_message?
@@ -139,15 +138,31 @@ class WecomCustomerService::InboundMessageService
     extensions
   end
 
+  def add_satisfaction_extensions(extensions, conversation)
+    servicer_userid = @message['servicer_userid'].presence ||
+                      conversation.extensions.to_h.dig('wecom_satisfaction_invitation', 'servicer_userid').presence
+    servicer = servicer_details(servicer_userid)
+    extensions['message_kind'] = 'satisfaction'
+    extensions['wecom']['satisfaction'] = satisfaction_callback.merge(servicer)
+    extensions['wecom'].merge!(servicer)
+  end
+
+  def servicer_details(servicer_userid)
+    return {} if servicer_userid.blank?
+
+    { 'servicer_userid' => servicer_userid,
+      'servicer_display_name' => servicer_display_name(servicer_userid) || servicer_userid }
+  end
+
   def add_event_actor(extensions)
     event = @message['event'].to_h
-    servicer_userid = event['servicer_userid'].presence
-    display_name = servicer_userid.present? ? "客服坐席 #{servicer_userid}" : '企业微信客服系统'
-    external_id = servicer_userid.presence || 'system'
+    servicer_userid = event['servicer_userid'].presence ||
+                      event['new_servicer_userid'].presence ||
+                      event['old_servicer_userid'].presence
     extensions['actor'] = {
-      'display_name' => display_name,
-      'external_id' => external_id,
-      'identity_key' => "wecom:#{servicer_userid.presence || 'system'}"
+      'display_name' => servicer_display_name(servicer_userid) || servicer_userid.presence || '企业微信客服系统',
+      'external_id' => servicer_userid.presence || 'system',
+      'identity_key' => "wecom:servicer:#{servicer_userid.presence || 'system'}"
     }
     extensions['wecom']['servicer_userid'] = servicer_userid if servicer_userid.present?
   end
@@ -167,10 +182,18 @@ class WecomCustomerService::InboundMessageService
   def add_servicer_extensions(extensions, servicer_userid)
     extensions['wecom']['servicer_userid'] = servicer_userid
     extensions['actor'] = {
-      'display_name' => servicer_userid,
+      'display_name' => servicer_display_name(servicer_userid) || servicer_userid,
       'external_id' => servicer_userid,
       'identity_key' => "wecom:servicer:#{servicer_userid}"
     }
+  end
+
+  # Names come from the directory snapshot persisted when the reception settings are synced.
+  # A servicer missing from that snapshot (e.g. added outside Chatwoot) falls back to the userid.
+  def servicer_display_name(servicer_userid)
+    return if servicer_userid.blank?
+
+    @channel.reception_servicer_names[servicer_userid].presence
   end
 
   def message_created_at

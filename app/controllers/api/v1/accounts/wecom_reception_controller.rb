@@ -17,7 +17,8 @@ class Api::V1::Accounts::WecomReceptionController < Api::V1::Accounts::BaseContr
 
     names = params.fetch(:servicer_names, ActionController::Parameters.new).permit(*selected).to_h
     service = WecomCustomerService::ServicerSyncService.new(channel: @inbox.channel, client: client, userids: selected, names: names)
-    render json: { servicers: service.perform }
+    servicers = service.perform
+    render json: { servicers: servicers, servicer_names: @inbox.channel.reception_servicer_names }
   end
 
   private
