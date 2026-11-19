@@ -11,6 +11,13 @@ class Api::V1::Accounts::WecomReceptionController < Api::V1::Accounts::BaseContr
     render json: { members: client.list_department_members(department_id: params.require(:department_id)).fetch('userlist') }
   end
 
+  def js_signature
+    return head :not_found unless @inbox.channel.credential_mode == 'isv'
+
+    service = WecomCustomerService::IsvCredentialService.new(corp_id: @inbox.channel.corp_id)
+    render json: service.js_signature(url: params.require(:url))
+  end
+
   def update
     selected = params.fetch(:servicer_userids)
     raise ActionController::BadRequest unless selected.is_a?(Array) && selected.all? { |id| id.is_a?(String) && id.present? }

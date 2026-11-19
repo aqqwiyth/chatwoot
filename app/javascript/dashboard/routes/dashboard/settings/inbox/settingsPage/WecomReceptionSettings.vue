@@ -7,6 +7,7 @@ import InboxesAPI from 'dashboard/api/inboxes';
 import SettingsFieldSection from 'dashboard/components-next/Settings/SettingsFieldSection.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import WecomOpenData from './WecomOpenData.vue';
 
 const props = defineProps({ inbox: { type: Object, required: true } });
 const emit = defineEmits(['enabledChange']);
@@ -30,6 +31,9 @@ const members = ref([]);
 const selected = ref([]);
 const selectedNames = ref({});
 const platformDepartments = ref([]);
+const openDataReady = ref(false);
+const openDataError = ref(false);
+const isIsv = computed(() => props.inbox.credential_mode === 'isv');
 const messagesValid = computed(
   () => outsideMessage.value.trim() && busyMessage.value.trim()
 );
@@ -78,6 +82,73 @@ const save = async () => {
   }
 };
 
+const loadScript = src =>
+  new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.referrerPolicy = 'origin';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
+const initializeOpenData = async () => {
+  if (!isIsv.value || openDataReady.value) return;
+  openDataError.value = false;
+  try {
+    const url = window.location.href.split('#')[0];
+    const { data } = await InboxesAPI.getWecomJsSignature(props.inbox.id, url);
+    if (!window.wx) {
+      await loadScript('https://res.wx.qq.com/open/js/jweixin-1.2.0.js');
+    }
+    await loadScript(
+      'https://open.work.weixin.qq.com/wwopen/js/jwxwork-1.0.0.js'
+    );
+    const { wx } = window;
+    if (/MicroMessenger/i.test(navigator.userAgent)) {
+      await new Promise((resolve, reject) => {
+        wx.config({
+          beta: true,
+          appId: data.corpid,
+          timestamp: data.timestamp,
+          nonceStr: data.nonceStr,
+          signature: data.configSignature,
+          jsApiList: [],
+        });
+        wx.ready(resolve);
+        wx.error(reject);
+      });
+    }
+    await new Promise((resolve, reject) => {
+      wx.agentConfig({
+        corpid: data.corpid,
+        agentid: data.agentid,
+        timestamp: data.timestamp,
+        nonceStr: data.nonceStr,
+        signature: data.agentSignature,
+        jsApiList: [],
+        success: resolve,
+        fail: reject,
+      });
+    });
+    if (!window.WWOpenData) throw new Error('WeCom open-data unavailable');
+    if (window.WWOpenData.on) {
+      window.WWOpenData.on('error', () => {
+        openDataReady.value = false;
+        openDataError.value = true;
+      });
+    }
+    if (window.WWOpenData.checkSession) {
+      await new Promise((success, fail) => {
+        window.WWOpenData.checkSession({ success, fail });
+      });
+    }
+    openDataReady.value = true;
+  } catch (error) {
+    openDataError.value = true;
+  }
+};
+
 const loadDirectory = async () => {
   loadingDirectory.value = true;
   try {
@@ -91,6 +162,7 @@ const loadDirectory = async () => {
       .filter(item => item.department_id)
       .map(item => item.department_id);
     directoryLoaded.value = true;
+    await initializeOpenData();
   } catch (error) {
     useAlert(
       error.response?.data?.message ||
@@ -312,7 +384,42 @@ const syncServicers = async () => {
             )
           }}
         </p>
-        <label>
+        <p v-if="openDataError" class="text-body-main text-n-ruby-11">
+          {{
+            t(
+              'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.RECEPTION.OPEN_DATA_ERROR'
+            )
+          }}
+        </p>
+        <fieldset v-if="isIsv" class="flex flex-col gap-2 border-0 p-0 m-0">
+          <legend>
+            {{
+              t(
+                'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.RECEPTION.DEPARTMENT'
+              )
+            }}
+          </legend>
+          <label
+            v-for="department in departments"
+            :key="department.id"
+            class="flex items-center gap-2"
+          >
+            <input
+              v-model="departmentId"
+              type="radio"
+              :value="department.id"
+              @change="loadMembers"
+            />
+            <WecomOpenData
+              v-if="openDataReady"
+              type="departmentName"
+              :openid="department.id"
+            />
+            <span v-else>{{ department.name }}</span>
+            <span>{{ `(${department.id})` }}</span>
+          </label>
+        </fieldset>
+        <label v-else>
           {{
             t(
               'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.RECEPTION.DEPARTMENT'
@@ -342,7 +449,13 @@ const syncServicers = async () => {
             class="flex items-center gap-2"
           >
             <input v-model="selected" type="checkbox" :value="member.userid" />
-            {{ `${member.name} (${member.userid})` }}
+            <WecomOpenData
+              v-if="isIsv && openDataReady"
+              type="userName"
+              :openid="member.userid"
+            />
+            <span v-else>{{ member.name }}</span>
+            <span>{{ `(${member.userid})` }}</span>
           </label>
         </div>
         <div>
@@ -358,7 +471,12 @@ const syncServicers = async () => {
             :key="userid"
             class="flex items-center gap-2"
           >
-            <span>{{ selectedNames[userid] || userid }}</span>
+            <WecomOpenData
+              v-if="isIsv && openDataReady"
+              type="userName"
+              :openid="userid"
+            />
+            <span v-else>{{ selectedNames[userid] || userid }}</span>
             <button
               type="button"
               class="text-n-brand"

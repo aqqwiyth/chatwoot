@@ -19,6 +19,10 @@ class Inboxes extends CacheEnabledApiClient {
     return axios.get(`${this.url}/${inboxId}/wecom_reception`);
   }
 
+  getWecomJsSignature(inboxId, url) {
+    return axios.post(`${this.url}/${inboxId}/wecom_js_signature`, { url });
+  }
+
   getWecomDepartmentMembers(inboxId, departmentId) {
     return axios.get(`${this.url}/${inboxId}/wecom_department_members`, {
       params: { department_id: departmentId },

@@ -294,6 +294,7 @@ Rails.application.routes.draw do
             get :assignable_agents, on: :member
             get :campaigns, on: :member
             get :wecom_reception, to: 'wecom_reception#show', on: :member
+            post :wecom_js_signature, to: 'wecom_reception#js_signature', on: :member
             get :wecom_department_members, to: 'wecom_reception#members', on: :member
             put :wecom_reception_servicers, to: 'wecom_reception#update', on: :member
             get :agent_bot, on: :member

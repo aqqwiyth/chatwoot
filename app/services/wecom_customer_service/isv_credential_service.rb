@@ -20,4 +20,19 @@ class WecomCustomerService::IsvCredentialService
 
     payload['access_token']
   end
+
+  def js_signature(url:)
+    base_url = ENV.fetch('WECOM_ISV_CREDENTIAL_URL').delete_suffix('/')
+    api_key = ENV.fetch('WECOM_ISV_CREDENTIAL_KEY')
+    response = HTTParty.post(
+      "#{base_url}/internal/js-signature",
+      headers: { 'Content-Type' => 'application/json', 'Authorization' => "Bearer #{api_key}" },
+      body: { corp_id: @corp_id, url: url }.to_json,
+      timeout: 20,
+      follow_redirects: false
+    )
+    raise 'ISV signature request failed' unless response.success? && response.parsed_response.is_a?(Hash)
+
+    response.parsed_response
+  end
 end

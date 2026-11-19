@@ -1124,6 +1124,7 @@
           "SERVICERS_HELP": "Load the enterprise directory, select individual members and sync them to this customer service account. The WeChat customer service application must be allowed to view those departments.",
           "LOAD_DIRECTORY": "Load enterprise directory and current agents",
           "DIRECTORY_ERROR": "Unable to load the enterprise directory or reception agents",
+          "OPEN_DATA_ERROR": "Names are unavailable. In this browser, open the app settings from your WeCom administrator console, then return to this page and load the directory again.",
           "DEPARTMENT": "Department",
           "SELECT_DEPARTMENT": "Choose a department",
           "SELECTED": "Selected agents",
