@@ -212,6 +212,8 @@ class WecomCustomerService::ApiClient
   private
 
   def access_token
+    return WecomCustomerService::IsvCredentialService.new(corp_id: @channel.corp_id).access_token if @channel.credential_mode == 'isv'
+
     Rails.cache.fetch("wecom_customer_service/access_token/#{@channel.id}", expires_in: 110.minutes) do
       response = HTTParty.get(
         "#{API_BASE_URL}/gettoken",

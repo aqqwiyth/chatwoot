@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_09_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -771,6 +771,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_09_000002) do
     t.boolean "reception_queue_auto_assign", default: false, null: false
     t.boolean "satisfaction_invitation_enabled", default: false, null: false
     t.text "satisfaction_invitation_message", default: "你对本次服务是否满意？", null: false
+    t.string "credential_mode", default: "direct", null: false
     t.index ["account_id"], name: "index_channel_wecom_customer_services_on_account_id"
     t.index ["identifier"], name: "index_channel_wecom_customer_services_on_identifier", unique: true
   end

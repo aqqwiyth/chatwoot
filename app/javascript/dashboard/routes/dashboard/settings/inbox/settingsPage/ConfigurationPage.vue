@@ -74,6 +74,7 @@ export default {
       wecomCustomerCorpId: '',
       wecomCustomerOpenKfid: '',
       wecomCustomerSecret: '',
+      wecomCustomerCredentialMode: 'direct',
     };
   },
   validations: {
@@ -175,6 +176,7 @@ export default {
         this.wecomCustomerCorpId = this.inbox.corp_id || '';
         this.wecomCustomerOpenKfid = this.inbox.open_kfid || '';
         this.wecomCustomerSecret = this.inbox.secret || '';
+        this.wecomCustomerCredentialMode = this.inbox.credential_mode || 'direct';
       }
       this.$nextTick(() => {
         this.isSettingDefaults = false;
@@ -255,6 +257,7 @@ export default {
             corp_id: this.wecomCustomerCorpId.trim(),
             open_kfid: this.wecomCustomerOpenKfid.trim(),
             secret: this.wecomCustomerSecret.trim(),
+            credential_mode: this.wecomCustomerCredentialMode,
           },
         });
         useAlert(
@@ -649,7 +652,15 @@ export default {
             $t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.OPEN_KFID')
           "
         />
+        <label>
+          {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CREDENTIAL_MODE.LABEL') }}
+          <select v-model="wecomCustomerCredentialMode">
+            <option value="direct">{{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CREDENTIAL_MODE.DIRECT') }}</option>
+            <option value="isv">{{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CREDENTIAL_MODE.ISV') }}</option>
+          </select>
+        </label>
         <woot-input
+          v-if="wecomCustomerCredentialMode === 'direct'"
           v-model.trim="wecomCustomerSecret"
           type="password"
           :label="$t('INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.SECRET')"

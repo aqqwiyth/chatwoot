@@ -46,10 +46,11 @@ class Channel::WecomCustomerService < ApplicationRecord
                     :human_reception_enabled, :reception_queue_enabled, :outside_reception_hours_message,
                     :reception_busy_message, :max_concurrent_receptions, :reception_queue_auto_assign,
                     :satisfaction_invitation_enabled, :satisfaction_invitation_message,
-                    :auto_close_after_minutes, :agent_response_timeout_minutes].freeze
+                    :auto_close_after_minutes, :agent_response_timeout_minutes, :credential_mode].freeze
 
   has_secure_token :identifier
 
+  before_validation :set_isv_secret_placeholder
   before_update :reset_cursor, if: :sync_scope_changed?
   after_update_commit :clear_access_token_cache, if: :access_token_credentials_changed?
   after_update_commit :reschedule_auto_close, if: :saved_change_to_auto_close_after_minutes?
@@ -73,7 +74,8 @@ class Channel::WecomCustomerService < ApplicationRecord
   validates :bot_fallback_target, inclusion: { in: %w[wecom_platform chatwoot] }
   validates :identifier, uniqueness: true
   validates :open_kfid, presence: true
-  validates :secret, presence: true
+  validates :credential_mode, inclusion: { in: %w[direct isv] }
+  validates :secret, presence: true, if: -> { credential_mode == 'direct' }
   validates :corp_id, presence: true
   validates :callback_token, presence: true
   validates :encoding_aes_key, presence: true, length: { is: 43 }
@@ -107,8 +109,12 @@ class Channel::WecomCustomerService < ApplicationRecord
     self.reception_servicer_names = {}
   end
 
+  def set_isv_secret_placeholder
+    self.secret = '' if credential_mode == 'isv' && secret.nil?
+  end
+
   def access_token_credentials_changed?
-    saved_change_to_secret? || saved_change_to_corp_id?
+    saved_change_to_secret? || saved_change_to_corp_id? || saved_change_to_credential_mode?
   end
 
   def clear_access_token_cache

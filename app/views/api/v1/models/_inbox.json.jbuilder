@@ -132,6 +132,7 @@ json.callback_webhook_url resource.channel.callback_webhook_url if resource.grou
 if resource.wecom_customer_service?
   json.inbox_identifier resource.channel.try(:identifier)
   json.open_kfid resource.channel.try(:open_kfid)
+  json.credential_mode resource.channel.try(:credential_mode)
   json.corp_id resource.channel.try(:corp_id)
   json.welcome_message resource.channel.try(:welcome_message)
   json.session_assigned_message resource.channel.try(:session_assigned_message)

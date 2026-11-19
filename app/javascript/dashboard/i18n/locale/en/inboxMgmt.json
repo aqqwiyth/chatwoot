@@ -566,6 +566,11 @@
       "WECOM_CUSTOMER_SERVICE": {
         "TITLE": "WeChat customer service channel",
         "DESC": "Connect a WeChat customer service channel.",
+        "CREDENTIAL_MODE": {
+          "LABEL": "Credential mode",
+          "DIRECT": "Direct enterprise secret",
+          "ISV": "Third-party authorization (ISV)"
+        },
         "CHANNEL_NAME": {
           "LABEL": "Inbox Name"
         },

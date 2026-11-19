@@ -3,7 +3,7 @@ import { computed, reactive } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
-import { required } from '@vuelidate/validators';
+import { required, requiredIf } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
 import router from '../../../../index';
 import PageHeader from '../../SettingsSubPageHeader.vue';
@@ -15,6 +15,7 @@ const form = reactive({
   channelName: '',
   openKfid: '',
   secret: '',
+  credentialMode: 'direct',
   callbackToken: '',
   encodingAesKey: '',
   corpId: '',
@@ -23,7 +24,7 @@ const v$ = useVuelidate(
   {
     channelName: { required },
     openKfid: { required },
-    secret: { required },
+    secret: { required: requiredIf(() => form.credentialMode === 'direct') },
     callbackToken: { required },
     encodingAesKey: { required },
     corpId: { required },
@@ -43,6 +44,7 @@ const createChannel = async () => {
         type: 'wecom_customer_service',
         open_kfid: form.openKfid.trim(),
         secret: form.secret.trim(),
+        credential_mode: form.credentialMode,
         callback_token: form.callbackToken.trim(),
         encoding_aes_key: form.encodingAesKey.trim(),
         corp_id: form.corpId.trim(),
@@ -80,7 +82,14 @@ const createChannel = async () => {
         {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.OPEN_KFID.LABEL') }}
         <input v-model="form.openKfid" type="text" @blur="v$.openKfid.$touch" />
       </label>
-      <label :class="{ error: v$.secret.$error }">
+      <label>
+        {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CREDENTIAL_MODE.LABEL') }}
+        <select v-model="form.credentialMode">
+          <option value="direct">{{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CREDENTIAL_MODE.DIRECT') }}</option>
+          <option value="isv">{{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.CREDENTIAL_MODE.ISV') }}</option>
+        </select>
+      </label>
+      <label v-if="form.credentialMode === 'direct'" :class="{ error: v$.secret.$error }">
         {{ $t('INBOX_MGMT.ADD.WECOM_CUSTOMER_SERVICE.SECRET.LABEL') }}
         <input v-model="form.secret" type="password" @blur="v$.secret.$touch" />
       </label>

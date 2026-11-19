@@ -268,3 +268,19 @@ docker-compose -p chatwoot-preview \
 ### 旧消息没有出现在 Chatwoot
 
 只有消息同步任务在本特性代码下成功执行后，才会创建 Chatwoot 消息。请重新发送一条客户消息或重新执行一次微信客服回调。
+
+## ISV 授权模式
+
+部署本分支并执行数据库迁移后，在微信客服收件箱选择 **Third-party authorization (ISV)**。填写授权企业 CorpID、OpenKfId、第三方应用的回调 Token、EncodingAESKey 和机器人 Webhook。ISV 模式不需要填写企业自建应用 Secret；原有 `direct` 模式继续使用 CorpID 和 Secret。
+
+在 Rails 和 Sidekiq 两个进程环境中设置：
+
+```text
+WECOM_ISV_CREDENTIAL_URL=https://内网授权服务地址
+WECOM_ISV_CREDENTIAL_KEY=与授权服务CREDENTIAL_API_KEY一致的随机密钥
+NO_PROXY=授权服务内网域名,localhost,127.0.0.1
+```
+
+授权服务已保存 Suite 凭证、最新 suite_ticket 与企业永久授权码；Chatwoot 通过受保护的 `POST /internal/corp-token` 获取企业 access_token。凭证由授权服务缓存和刷新，Chatwoot 不缓存 ISV token。限制服务间访问范围；跨机器应使用 TLS，不要把密钥提交到仓库。服务间使用 HTTP 时 Bearer 密钥和 access_token 都会明文传输。
+
+将授权服务的 `callback_routes.json` 中对应 OpenKfId 映射到本收件箱回调地址。授权服务转发企业微信原始加密请求和验签参数，Chatwoot 仍执行原有验签解密并异步拉取消息；转发确认不代表消息已经同步成功。部署前需评估当前同步任务只处理最近 3 分钟消息的限制，避免延迟重试时丢弃消息。
