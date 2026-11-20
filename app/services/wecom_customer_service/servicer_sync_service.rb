@@ -16,13 +16,18 @@ class WecomCustomerService::ServicerSyncService
 
   private
 
-  # Names are stored as a snapshot of the WeCom directory: a rename on the platform side is only
-  # picked up by syncing the reception settings again.
   def servicer_names
     @userids.index_with { |userid| resolve_name(userid) }.compact
   end
 
   def resolve_name(userid)
+    if @channel.credential_mode == 'isv'
+      name = @names[userid]
+      return name.to_s.strip.presence if @names.key?(userid) && name != userid
+
+      return @channel.reception_servicer_names[userid].presence || userid
+    end
+
     @client.get_user(userid: userid)['name'].presence
   rescue WecomCustomerService::ApiError
     @names[userid].presence

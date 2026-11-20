@@ -186,7 +186,9 @@ const loadMembers = async () => {
     );
     members.value = data.members;
     data.members.forEach(member => {
-      selectedNames.value[member.userid] = member.name;
+      if (!isIsv.value || !Object.hasOwn(selectedNames.value, member.userid)) {
+        selectedNames.value[member.userid] = member.name;
+      }
     });
   } catch (error) {
     useAlert(
@@ -206,7 +208,9 @@ const syncServicers = async () => {
     const { data } = await InboxesAPI.syncWecomServicers(
       props.inbox.id,
       selected.value,
-      selectedNames.value
+      Object.fromEntries(
+        selected.value.map(id => [id, selectedNames.value[id] || ''])
+      )
     );
     selected.value = data.servicers
       .filter(item => item.userid)
@@ -477,6 +481,25 @@ const syncServicers = async () => {
               :openid="userid"
             />
             <span v-else>{{ selectedNames[userid] || userid }}</span>
+            <input
+              v-if="isIsv"
+              :value="
+                selectedNames[userid] === userid ? '' : selectedNames[userid]
+              "
+              type="text"
+              maxlength="255"
+              :placeholder="
+                t(
+                  'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.RECEPTION.SERVICER_ALIAS'
+                )
+              "
+              :aria-label="
+                t(
+                  'INBOX_MGMT.SETTINGS_POPUP.WECOM_CUSTOMER_SERVICE.RECEPTION.SERVICER_ALIAS'
+                )
+              "
+              @input="selectedNames[userid] = $event.target.value.trim()"
+            />
             <button
               type="button"
               class="text-n-brand"

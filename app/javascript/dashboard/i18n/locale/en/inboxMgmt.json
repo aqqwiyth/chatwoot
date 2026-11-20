@@ -1125,6 +1125,7 @@
           "LOAD_DIRECTORY": "Load enterprise directory and current agents",
           "DIRECTORY_ERROR": "Unable to load the enterprise directory or reception agents",
           "OPEN_DATA_ERROR": "Names are unavailable. In this browser, open the app settings from your WeCom administrator console, then return to this page and load the directory again.",
+          "SERVICER_ALIAS": "Name sent to downstream systems (enter manually)",
           "DEPARTMENT": "Department",
           "SELECT_DEPARTMENT": "Choose a department",
           "SELECTED": "Selected agents",
