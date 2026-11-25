@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_25_091000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -756,7 +756,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
     t.datetime "updated_at", null: false
     t.text "welcome_message"
     t.text "session_assigned_message"
-    t.text "session_ended_message"
     t.boolean "bot_fallback_enabled", default: false, null: false
     t.integer "bot_fallback_timeout_seconds", default: 120, null: false
     t.string "bot_fallback_target", default: "wecom_platform", null: false
@@ -765,12 +764,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
     t.jsonb "reception_servicer_names", default: {}, null: false
     t.text "outside_reception_hours_message", default: "当前不在人工接待时间，请稍后联系。", null: false
     t.text "reception_busy_message", default: "当前暂无客服接待，请稍后联系。", null: false
-    t.integer "auto_close_after_minutes", default: 0, null: false
     t.integer "agent_response_timeout_minutes", default: 0, null: false
     t.integer "max_concurrent_receptions", default: 10, null: false
     t.boolean "reception_queue_auto_assign", default: false, null: false
-    t.boolean "satisfaction_invitation_enabled", default: false, null: false
-    t.text "satisfaction_invitation_message", default: "你对本次服务是否满意？", null: false
     t.string "credential_mode", default: "direct", null: false
     t.index ["account_id"], name: "index_channel_wecom_customer_services_on_account_id"
     t.index ["identifier"], name: "index_channel_wecom_customer_services_on_identifier", unique: true
@@ -1625,6 +1621,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
     t.index ["account_id", "url"], name: "index_webhooks_on_account_id_and_url", unique: true
   end
 
+  create_table "wecom_customer_service_end_configs", force: :cascade do |t|
+    t.bigint "channel_id", null: false
+    t.string "scope", null: false
+    t.integer "auto_close_after_minutes", default: 0, null: false
+    t.boolean "satisfaction_enabled", default: false, null: false
+    t.text "satisfaction_message", default: "你对本次服务是否满意？", null: false
+    t.text "ending_message", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel_id", "scope"], name: "index_wecom_end_configs_on_channel_and_scope", unique: true
+  end
+
   create_table "wecom_customer_service_platform_sessions", force: :cascade do |t|
     t.bigint "channel_id", null: false
     t.string "external_userid", null: false
@@ -1660,7 +1668,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
-  add_foreign_key "wecom_customer_service_platform_sessions", "channel_wecom_customer_services", column: "channel_id", on_delete: :cascade
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaign_recipients", "accounts", on_delete: :cascade
@@ -1669,6 +1676,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_19_070000) do
   add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
   add_foreign_key "inboxes", "portals"
   add_foreign_key "user_sessions", "users"
+  add_foreign_key "wecom_customer_service_end_configs", "channel_wecom_customer_services", column: "channel_id", on_delete: :cascade
+  add_foreign_key "wecom_customer_service_platform_sessions", "channel_wecom_customer_services", column: "channel_id", on_delete: :cascade
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

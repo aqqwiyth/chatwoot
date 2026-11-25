@@ -136,8 +136,7 @@ if resource.wecom_customer_service?
   json.corp_id resource.channel.try(:corp_id)
   json.welcome_message resource.channel.try(:welcome_message)
   json.session_assigned_message resource.channel.try(:session_assigned_message)
-  json.session_ended_message resource.channel.try(:session_ended_message)
-  json.auto_close_after_minutes resource.channel.auto_close_after_minutes
+  json.end_configs resource.channel.end_configs_snapshot.map(&:api_payload)
   json.agent_response_timeout_minutes resource.channel.agent_response_timeout_minutes
   json.bot_fallback_enabled resource.channel.human_reception_enabled
   json.bot_fallback_timeout_seconds resource.channel.bot_fallback_timeout_seconds
@@ -146,8 +145,6 @@ if resource.wecom_customer_service?
   json.reception_queue_enabled resource.channel.reception_queue_enabled
   json.reception_queue_auto_assign resource.channel.reception_queue_auto_assign
   json.max_concurrent_receptions resource.channel.max_concurrent_receptions
-  json.satisfaction_invitation_enabled resource.channel.satisfaction_invitation_enabled
-  json.satisfaction_invitation_message resource.channel.satisfaction_invitation_message
   json.outside_reception_hours_message resource.channel.outside_reception_hours_message
   json.reception_busy_message resource.channel.reception_busy_message
   if Current.account_user&.administrator?

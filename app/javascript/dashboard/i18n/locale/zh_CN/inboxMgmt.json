@@ -1106,22 +1106,31 @@
         },
         "AUTO_CLOSE": {
           "TITLE": "自动结束会话",
-          "DESCRIPTION": "人工客服回复后，若用户在指定时间内未回复，则自动结束会话。仅由机器人接待和排队中的会话不会自动结束。",
+          "DESCRIPTION": "按进线类型分别配置自动结束超时和会话结束时的下发内容。",
           "TIMEOUT": "用户回复超时时间",
           "DISABLED": "不自动结束",
-          "INVITATION": "开启用户邀评",
-          "INVITATION_HELP": "开启后，系统将在会话结束时自动推送评价卡片。评价类型已预设为满意、一般、不满意，您只需配置评价话术。",
+          "INVITATION": "开启用户评价",
+          "INVITATION_HELP": "开启后，会话结束时下发评价菜单（满意 / 一般 / 不满意）；设置了结束语时，结束语显示在评价选项上方。",
           "INVITATION_MESSAGE": "评价话术",
           "INVITATION_LIMIT": "最多 1024 字节。",
-          "MINUTES": "{count} 分钟",
-          "HOUR": "1 小时",
-          "HOURS": "{count} 小时",
+          "ENDING_MESSAGE": "结束语话术",
+          "ENDING_MESSAGE_HELP": "选填，最多 1024 字节。会话结束时下发；同时开启评价时显示在评价选项上方。",
+          "MANUAL_NO_TIMEOUT": "客服手动结束会话时不涉及自动结束超时。",
+          "SCOPES": {
+            "AI": "AI接待",
+            "HANDOFF_AUTO": "转人工会话 · 系统自动结束",
+            "HANDOFF_MANUAL": "转人工会话 · 客服手动结束",
+            "DIRECT": "直连人工会话 · 重复进线"
+          },
+          "SCOPE_HELP": {
+            "AI": "由智能助手接待、客户超时未回复时自动结束的会话。",
+            "HANDOFF_AUTO": "本系统转人工后，客户超时未回复时自动结束的会话。",
+            "HANDOFF_MANUAL": "接待人员在企业微信客服后台手动结束的会话。",
+            "DIRECT": "平台上已由人工接待、且不是本系统转人工发起的会话（含 48 小时内再次进线）。"
+          },
           "SAVE": "保存自动结束配置",
           "SUCCESS": "自动结束配置已更新",
-          "ERROR": "自动结束配置更新失败",
-          "AGENT_TIMEOUT": "转人工或排队后客服响应超时时间",
-          "AGENT_NOTICE": "此配置仅保存备用，暂不会触发任何操作。",
-          "AGENT_DISABLED": "未设置"
+          "ERROR": "自动结束配置更新失败"
         }
       }
     },

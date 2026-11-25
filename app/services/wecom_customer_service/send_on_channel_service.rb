@@ -24,7 +24,7 @@ class WecomCustomerService::SendOnChannelService < Base::SendOnChannelService
       return
     end
 
-    if @message_sent && WecomCustomerService::AutoCloseService.ai_reply?(message)
+    if @message_sent && WecomCustomerService::SessionScope.ai_reply?(message)
       WecomCustomerService::AutoCloseService.schedule(message, Time.current)
     end
   end

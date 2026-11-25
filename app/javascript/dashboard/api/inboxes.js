@@ -36,6 +36,12 @@ class Inboxes extends CacheEnabledApiClient {
     });
   }
 
+  updateWecomEndConfigs(inboxId, endConfigs) {
+    return axios.put(`${this.url}/${inboxId}/wecom_end_configs`, {
+      end_configs: endConfigs,
+    });
+  }
+
   deleteInboxAvatar(inboxId) {
     return axios.delete(`${this.url}/${inboxId}/avatar`);
   }

@@ -4,10 +4,17 @@ class WecomCustomerService::RescheduleAutoCloseJob < ApplicationJob
 
   def perform(channel_id)
     channel = Channel::WecomCustomerService.find(channel_id)
-    return if channel.auto_close_after_minutes.zero?
 
     WecomCustomerService::PlatformSession.where(channel: channel).where.not(auto_close_reply_id: nil).find_each do |session|
-      WecomCustomerService::AutoCloseJob.set(wait_until: session.auto_close_reply_at + channel.auto_close_after_minutes.minutes)
+      message = Message.find_by(id: session.auto_close_reply_id)
+      next if message.blank?
+
+      timeout = WecomCustomerService::AutoCloseService.timeout_minutes(
+        channel, WecomCustomerService::SessionScope.for_message(message)
+      )
+      next if timeout.zero?
+
+      WecomCustomerService::AutoCloseJob.set(wait_until: session.auto_close_reply_at + timeout.minutes)
                                         .perform_later(session.auto_close_reply_id, session.auto_close_reply_at.iso8601(6))
     end
   end

@@ -58,10 +58,16 @@ class WecomCustomerService::HandoffService
     result.merge(handoff_status: status)
   end
 
+  # Records that this system handed the session over, so the end-of-session settings can tell a
+  # handed-off session from a session that already had a human servicer on the platform.
   def transition_conversation_to_human
     WecomCustomerService::BotFallbackService.stop(@conversation)
     @conversation.with_lock do
+      @conversation.extensions = @conversation.extensions.to_h.merge(
+        WecomCustomerService::SessionScope::ENTRY_KEY => WecomCustomerService::SessionScope::HANDOFF
+      )
       @conversation.bot_handoff! if @conversation.pending? || @conversation.assignee_agent_bot_id.present?
+      @conversation.save! if @conversation.changed?
     end
   end
 

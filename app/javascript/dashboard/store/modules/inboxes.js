@@ -284,6 +284,23 @@ export const actions = {
       throwErrorMessage(error);
     }
   },
+  updateWecomEndConfigs: async (
+    { commit, getters: inboxGetters },
+    { id, endConfigs }
+  ) => {
+    commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await InboxesAPI.updateWecomEndConfigs(id, endConfigs);
+      commit(types.default.EDIT_INBOXES, {
+        ...inboxGetters.getInbox(id),
+        end_configs: response.data.end_configs,
+      });
+      commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: false });
+    } catch (error) {
+      commit(types.default.SET_INBOXES_UI_FLAG, { isUpdating: false });
+      throwErrorMessage(error);
+    }
+  },
   delete: async ({ commit }, inboxId) => {
     commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: true });
     try {

@@ -55,7 +55,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     WecomCustomerService::AutoCloseService.observe_customer_message(channel, message)
     WecomCustomerService::AutoCloseService.observe_transfer(channel, message)
     if message.fetch('send_time').to_i < MAX_MESSAGE_AGE.ago.to_i && !ended_session_event?(message) &&
-       WecomCustomerService::SatisfactionInvitationService.rating_callback(message).blank?
+       WecomCustomerService::SessionEndingService.rating_callback(message).blank?
       return
     end
 
@@ -83,13 +83,13 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     media_file&.io&.close!
   end
 
-  # change_type=3 means the WeCom session ended. The event is recorded and the configured ended
-  # message is sent first, then the conversation holding it is resolved so that later messages from
+  # change_type=3 means the WeCom session ended. The event is recorded and the configured ending
+  # action is sent first, then the conversation holding it is resolved so that later messages from
   # the same customer start a new Chatwoot conversation.
   def close_ended_session_conversation(stored_message, message)
     return if stored_message.blank? || !ended_session_event?(message)
 
-    conversation = stored_message.conversation
+    conversation = stored_message.conversation.reload
     conversation.update!(extensions: conversation.extensions.to_h.merge('wecom_session_ended' => true))
     conversation.resolved! unless conversation.resolved?
   end
@@ -105,14 +105,15 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
     return if extensions.dig('wecom', 'event_response_sent') == true || extensions.dig('wecom', 'event_response_error').present?
 
     if event['event_type'] == SESSION_STATUS_CHANGE_EVENT && event['change_type'].to_i == SESSION_ENDED_CHANGE_TYPE
-      if event['msg_code'].blank?
-        Rails.logger.warn("WeCom satisfaction invitation missing event code for message=#{stored_message.id}")
-        return
-      end
-
-      WecomCustomerService::SatisfactionInvitationService.new(channel: channel, conversation: stored_message.conversation)
-                                                         .perform(code: event['msg_code'],
-                                                                  servicer_userid: event['old_servicer_userid'])
+      # A servicer ending the session on the platform is a manual end; the entry type decides whether
+      # the handoff or the direct-human ending settings apply.
+      entry_scope = WecomCustomerService::SessionScope.for_conversation(
+        stored_message.conversation, servicer_userid: event['old_servicer_userid']
+      )
+      WecomCustomerService::SessionEndingService.new(channel: channel, conversation: stored_message.conversation)
+                                                 .perform(code: event['msg_code'], entry_scope: entry_scope,
+                                                          trigger: WecomCustomerService::SessionScope::MANUAL_TRIGGER,
+                                                          servicer_userid: event['old_servicer_userid'])
     else
       code, content = fixed_event_response(channel, event)
       return if code.blank? || content.blank?
@@ -201,7 +202,7 @@ class Webhooks::WecomCustomerServiceEventsJob < MutexApplicationJob
   end
 
   def message_content(channel, message)
-    satisfaction = WecomCustomerService::SatisfactionInvitationService.rating_callback(message)
+    satisfaction = WecomCustomerService::SessionEndingService.rating_callback(message)
     return "服务评价：#{satisfaction[:label]}" if satisfaction.present?
 
     return message.dig('text', 'content').to_s if message['msgtype'] == 'text'

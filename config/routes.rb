@@ -297,6 +297,7 @@ Rails.application.routes.draw do
             post :wecom_js_signature, to: 'wecom_reception#js_signature', on: :member
             get :wecom_department_members, to: 'wecom_reception#members', on: :member
             put :wecom_reception_servicers, to: 'wecom_reception#update', on: :member
+            put :wecom_end_configs, to: 'wecom_end_configs#update', on: :member
             get :agent_bot, on: :member
             get :message_templates, on: :member
             post :set_agent_bot, on: :member

@@ -133,9 +133,34 @@ wecom:<corp_id>:<external_userid>
 
 ### 结束会话时关闭 Chatwoot 会话
 
-`session_status_change` 事件的 `change_type=3` 表示平台会话结束。此时 Chatwoot 会先记录并转发该事件消息、按“结束会话话术”发送事件响应消息，再把事件所属的 Chatwoot 会话标记为已解决（`resolved`）。之后同一客户的新消息会创建新的 Chatwoot 会话。
+`session_status_change` 事件的 `change_type=3` 表示平台会话结束。此时 Chatwoot 会先记录并转发该事件消息、按当前进线类型的配置下发结束动作（评价菜单和/或结束语），再把事件所属的 Chatwoot 会话标记为已解决（`resolved`）。之后同一客户的新消息会创建新的 Chatwoot 会话。
 
 `change_type=1` 仍然只负责按“接入会话话术”发送事件响应消息；`change_type=4`（重新接入已结束或已转接会话）只记录并转发事件消息，不改变 Chatwoot 会话状态。
+
+### 按进线类型配置自动结束与结束动作
+
+配置入口：收件箱 → 配置 → 自动结束会话。每个进线类型一组配置，可分别设置自动结束超时、是否开启评价、评价话术、结束语话术：
+
+| 进线类型 | config scope | 自动结束超时 | 结束动作 |
+| --- | --- | --- | --- |
+| AI接待 | `ai` | 有 | 系统自动结束 |
+| 转人工会话 · 系统自动结束 | `handoff_auto` | 有 | 系统自动结束 |
+| 转人工会话 · 客服手动结束 | `handoff_manual` | 无 | 客服在企业微信侧手动结束 |
+| 直连人工会话 · 重复进线 | `direct` | 有 | 系统自动结束或客服手动结束（共用一套配置） |
+
+进线类型判定（`WecomCustomerService::SessionScope`）：
+
+- `ai`：回复来自 AI（AgentBot 或带 `kefu_ai_reply_task_id`），平台会话状态为 1。
+- `handoff`：本系统调用过 `kf/service_state/trans` 把会话转为 2/3，会话扩展记录 `wecom_entry_type=handoff`。
+- `direct`：会话进入时平台已是人工接待（3）且没有上面的标记，例如客户在 48 小时会话内再次进线或平台自动分配。
+
+结束动作：
+
+- 开启评价：下发事件菜单，`head_content = 结束语 + 评价话术`，选项为满意 / 一般 / 不满意，客户点选后写回一条私有评价消息。
+- 未开启评价：若有结束语，下发一条文本结束语。
+- 两者都没有：不下发。
+- 企业微信对一次会话结束只允许一条事件响应，所以「结束语 + 评价」合并在菜单引导文案里下发；同一次结束（自动结束 + 随后的 `change_type=3` 事件）只下发一次，标记写在会话扩展 `wecom_session_ending`。
+- 若所有进线类型的超时都为 0，Chatwoot 自身的自动解决规则重新对该收件箱生效。
 
 ## 机器人 Webhook
 

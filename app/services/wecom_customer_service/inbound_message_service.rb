@@ -115,7 +115,7 @@ class WecomCustomerService::InboundMessageService
 
   def event_message? = @message['msgtype'] == 'event'
 
-  def satisfaction_callback = @satisfaction_callback ||= WecomCustomerService::SatisfactionInvitationService.rating_callback(@message)
+  def satisfaction_callback = @satisfaction_callback ||= WecomCustomerService::SessionEndingService.rating_callback(@message)
 
   def customer_details
     @customer_details ||= begin
@@ -140,7 +140,7 @@ class WecomCustomerService::InboundMessageService
 
   def add_satisfaction_extensions(extensions, conversation)
     servicer_userid = @message['servicer_userid'].presence ||
-                      conversation.extensions.to_h.dig('wecom_satisfaction_invitation', 'servicer_userid').presence
+                      conversation.extensions.to_h.dig('wecom_session_ending', 'servicer_userid').presence
     servicer = servicer_details(servicer_userid)
     extensions['message_kind'] = 'satisfaction'
     extensions['wecom']['satisfaction'] = satisfaction_callback.merge(servicer)

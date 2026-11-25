@@ -1153,23 +1153,35 @@
           "REQUIRED_NOTICE": "Bot timeout transfer is enabled when human reception is enabled."
         },
         "AUTO_CLOSE": {
-          "TITLE": "Automatically end conversations",
-          "DESCRIPTION": "End an active human-agent session when the customer has not replied after the agent’s reply. Bot-only and queued sessions are not automatically ended.",
+          "TITLE": "Ending sessions",
+          "DESCRIPTION": "Configure the inactivity timeout and the action sent when a session ends, separately for every entry type.",
           "TIMEOUT": "Customer response timeout",
-          "DISABLED": "Do not automatically end",
+          "DISABLED": "Do not end automatically",
           "MINUTES": "{count} minutes",
           "HOUR": "1 hour",
           "HOURS": "{count} hours",
-          "SAVE": "Save automatic closing settings",
-          "SUCCESS": "Automatic closing settings updated",
-          "ERROR": "Unable to update automatic closing settings",
-          "AGENT_TIMEOUT": "Agent response timeout after transfer or queue",
-          "AGENT_NOTICE": "This setting is saved for future use and does not trigger any action yet.",
-          "AGENT_DISABLED": "Not set",
-          "INVITATION": "Enable satisfaction invitations",
-          "INVITATION_HELP": "When enabled, a rating menu is sent when the conversation ends. Satisfaction options are preset to satisfied, neutral, and dissatisfied.",
-          "INVITATION_MESSAGE": "Rating message",
-          "INVITATION_LIMIT": "Maximum 1024 bytes."
+          "INVITATION": "Send a rating request when the session ends",
+          "INVITATION_HELP": "A menu with satisfied, neutral, and dissatisfied is sent. When a closing message is set, it is shown above the rating options.",
+          "INVITATION_MESSAGE": "Rating prompt",
+          "INVITATION_LIMIT": "Maximum 1024 bytes.",
+          "ENDING_MESSAGE": "Closing message",
+          "ENDING_MESSAGE_HELP": "Optional, at most 1024 bytes. Sent when the session ends and shown above the rating options when ratings are enabled.",
+          "MANUAL_NO_TIMEOUT": "A session ended by a servicer does not use the inactivity timeout.",
+          "SCOPES": {
+            "AI": "AI reception",
+            "HANDOFF_AUTO": "Handoff to human · ended automatically",
+            "HANDOFF_MANUAL": "Handoff to human · ended by servicer",
+            "DIRECT": "Direct human reception · repeat entry"
+          },
+          "SCOPE_HELP": {
+            "AI": "Sessions served by the AI assistant that end when the customer stops replying.",
+            "HANDOFF_AUTO": "Sessions this system handed off to human reception that end when the customer stops replying.",
+            "HANDOFF_MANUAL": "Sessions a servicer ends manually in the WeChat customer service console.",
+            "DIRECT": "Sessions already served by a human on the platform that this system did not hand off, including repeat entries within 48 hours."
+          },
+          "SAVE": "Save ending settings",
+          "SUCCESS": "Ending settings updated",
+          "ERROR": "Unable to update ending settings"
         },
         "TAB_WELCOME": "Welcome message",
         "TAB_RECEPTION": "Human reception",
