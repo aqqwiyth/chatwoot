@@ -15,7 +15,10 @@ class MutexApplicationJob < ApplicationJob
   class LockAcquisitionError < StandardError; end
 
   def self.retry_on_lock_conflict(wait:, attempts:, on_exhaustion: :raise)
-    retry_on LockAcquisitionError, wait: wait, attempts: attempts do |job, error|
+    # A fixed retry delay makes every job that lost the same lock retry in lockstep, which keeps them
+    # colliding. Spreading the retries over the wait window lets one of them win and the rest follow.
+    jittered_wait = ->(_executions) { wait + (rand * wait) }
+    retry_on LockAcquisitionError, wait: jittered_wait, attempts: attempts do |job, error|
       raise error if on_exhaustion == :raise
 
       job.public_send(on_exhaustion, *job.arguments)
